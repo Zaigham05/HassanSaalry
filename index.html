@@ -80,7 +80,15 @@
                     </div>
                 </div>
                 
-                <div class="table-container full-width-table">
+        <div id="data-view" class="card d-none">
+            <div class="data-tabs">
+                <button id="tab-salary" class="tab-btn active">Salary Records</button>
+                <button id="tab-funds" class="tab-btn">Managed Funds</button>
+            </div>
+
+            <div id="salary-section">
+                <div class="card-header">
+                    <h2>All Salary Data</h2>
                     <div class="stat-badge">Total Records: <span id="stat-count">0</span></div>
                 </div>
                 <div class="table-container">
@@ -260,19 +268,20 @@
                 <h2>Add Funds</h2>
                 <button class="btn-icon close-modal" data-target="funds-modal">✕</button>
             </div>
-            <form id="funds-form" class="grid-form single-col">
-                <div class="form-group">
-                    <label for="funds-month">Month <span class="required">*</span></label>
+            <form id="funds-form" class="dashboard-form">
+                <div class="form-group full-width">
+                    <label for="funds-month">Month</label>
                     <input type="month" id="funds-month" required>
                 </div>
-                <div class="form-group">
+                <div class="form-group full-width">
                     <label for="funds-type">Fund Type <span class="required">*</span></label>
                     <select id="funds-type" required>
-                        <option value="" disabled selected>Select Type</option>
-                        <option value="Yearly Bonus">Yearly Bonus</option>
-                        <option value="WPPF (5%)">WPPF (5%)</option>
-                        <option value="Allowances">Allowances</option>
-                        <option value="Other">Other</option>
+                        <option value="Bonus">Bonus</option>
+                        <option value="WPPF">WPPF</option>
+                        <option value="Incentive">Incentive</option>
+                        <option value="Adjustment">Adjustment</option>
+                        <option value="PF">PF</option>
+                        <option value="Others">Others</option>
                     </select>
                 </div>
                 <div class="form-group">

@@ -384,6 +384,23 @@ document.addEventListener('DOMContentLoaded', () => {
         dashStats.ot.innerHTML = formatCurrency(totalOT);
         if(dashStats.funds) dashStats.funds.innerHTML = formatCurrency(totalFunds);
 
+        // Funds Breakdown
+        const fundsBreakdown = document.getElementById('dash-funds-breakdown');
+        if (fundsBreakdown) {
+            fundsBreakdown.innerHTML = '';
+            const fundTotals = {};
+            filteredFunds.forEach(f => {
+                fundTotals[f.type] = (fundTotals[f.type] || 0) + parseNumber(f.amount);
+            });
+            
+            Object.entries(fundTotals).forEach(([type, amount]) => {
+                const div = document.createElement('div');
+                div.className = 'fund-sub-item';
+                div.innerHTML = `<span>${type}:</span> <span>${formatCurrency(amount)}</span>`;
+                fundsBreakdown.appendChild(div);
+            });
+        }
+
         dashStats.deduction.innerHTML = formatCurrency(totalDeduction);
         dashStats.pf.innerHTML = formatCurrency(totalPF);
         dashStats.tax.innerHTML = formatCurrency(totalTax);
@@ -752,21 +769,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    cancelDeleteBtn.addEventListener('click', () => {
-        deleteModal.classList.add('hidden');
-        deleteTarget = null;
-    });
 
     // --- Initialization ---
     setupUnlockButtons();
     setupModals();
-    setupFirebaseSync(); // Start cloud sync once
+    setupFirebaseSync(); 
     
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     inputs.month.value = currentMonth;
-    document.getElementById('funds-month').value = currentMonth;
-    
+    if(document.getElementById('funds-month')) document.getElementById('funds-month').value = currentMonth;
+
     calculate();
     renderTable();
     renderFundsTable();

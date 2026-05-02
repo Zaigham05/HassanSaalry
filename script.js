@@ -434,10 +434,11 @@ document.addEventListener('DOMContentLoaded', () => {
             fundsModal.classList.remove('hidden');
         });
 
-        closeBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const targetId = btn.getAttribute('data-target');
-                document.getElementById(targetId).classList.add('hidden');
+        document.querySelectorAll('.close-modal').forEach(btn => {
+            btn.addEventListener('click', () => {
+                salaryModal.classList.add('hidden');
+                fundsModal.classList.add('hidden');
+                deleteModal.classList.add('hidden');
             });
         });
 

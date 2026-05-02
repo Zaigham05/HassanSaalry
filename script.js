@@ -95,37 +95,38 @@ document.addEventListener('DOMContentLoaded', () => {
     let monthToDelete = null;
 
     function getRecords() {
-        // Sync from Firebase if available
-        if (db) {
-            db.ref('salary_records').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    // Convert object to sorted array
-                    const recordsArray = Object.values(data).sort((a, b) => new Date(b.month) - new Date(a.month));
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(recordsArray));
-                    renderTable();
-                    updateDashboard();
-                }
-            });
-        }
-        
         const records = localStorage.getItem(STORAGE_KEY);
         return records ? JSON.parse(records) : [];
     }
 
     function getFunds() {
-        if (db) {
-            db.ref('funds_records').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(Object.values(data)));
-                    updateDashboard();
-                }
-            });
-        }
-
         const records = localStorage.getItem(FUNDS_STORAGE_KEY);
         return records ? JSON.parse(records) : [];
+    }
+
+    // --- Firebase Sync Logic (One-time setup) ---
+    function setupFirebaseSync() {
+        if (!db) return;
+
+        // Listen for Salary Records
+        db.ref('salary_records').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const recordsArray = Object.values(data).sort((a, b) => new Date(b.month) - new Date(a.month));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(recordsArray));
+                renderTable();
+                updateDashboard();
+            }
+        });
+
+        // Listen for Funds
+        db.ref('funds_records').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(Object.values(data)));
+                updateDashboard();
+            }
+        });
     }
 
     function saveRecord(record) {
@@ -535,6 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initialization ---
     setupUnlockButtons();
     setupModals();
+    setupFirebaseSync(); // Start cloud sync once
     
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

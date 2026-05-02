@@ -13,6 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabFunds = document.getElementById('tab-funds');
     const salarySection = document.getElementById('salary-section');
     const fundsSection = document.getElementById('funds-section');
+    const logsSection = document.getElementById('logs-section');
+    const logsTableBody = document.getElementById('logs-body');
+    const logsCount = document.getElementById('logs-count');
+    const tabLogs = document.getElementById('tab-logs');
+    const filterYear = document.getElementById('filter-year');
 
     let deleteTarget = null; // { type: 'record'|'fund', id: string }
 
@@ -100,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Local Storage Management ---
     const STORAGE_KEY = 'salary_analysis_records';
     const FUNDS_STORAGE_KEY = 'salary_funds_records';
+    const LOGS_STORAGE_KEY = 'salary_activity_logs';
 
     let monthToDelete = null;
 
@@ -109,8 +115,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getFunds() {
-        const records = localStorage.getItem(FUNDS_STORAGE_KEY);
-        return records ? JSON.parse(records) : [];
+        const funds = localStorage.getItem(FUNDS_STORAGE_KEY);
+        return funds ? JSON.parse(funds) : [];
+    }
+
+    function getLogs() {
+        const logs = localStorage.getItem(LOGS_STORAGE_KEY);
+        return logs ? JSON.parse(logs) : [];
     }
 
     // --- Firebase Sync Logic (One-time setup) ---
@@ -162,20 +173,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateDashboard();
                 }
             });
+
+            // Listen for Logs
+            db.ref('activity_logs').limitToLast(100).on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(Object.values(data)));
+                    renderLogsTable();
+                }
+            });
         } catch (err) {
             console.error("Firebase setup failed:", err);
         }
     }
 
     function saveRecord(record) {
+        const records = getRecords();
+        const existingIndex = records.findIndex(r => r.month === record.month);
+        const action = existingIndex >= 0 ? 'EDIT' : 'ADD';
+
         if (db) {
-            // Save to Firebase (key uses underscores for compatibility)
             const firebaseKey = record.month.replace('-', '_');
             db.ref('salary_records/' + firebaseKey).set(record);
         } else {
-            // Fallback to local only
-            const records = getRecords();
-            const existingIndex = records.findIndex(r => r.month === record.month);
             if (existingIndex >= 0) {
                 records[existingIndex] = record;
             } else {
@@ -186,6 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderTable();
             updateDashboard();
         }
+        addLog(action, 'SALARY', record.month, `Amt: ${record.netPayable}`);
     }
 
     function saveFund(fund) {
@@ -197,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(fundsList));
             updateDashboard();
         }
+        addLog('ADD', 'FUND', fund.type, `Amt: ${fund.amount} (${fund.month})`);
     }
 
     // --- Helper Functions ---
@@ -226,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function formatCurrency(amount) {
-        return 'PKR ' + new Intl.NumberFormat('en-US').format(Math.round(parseNumber(amount)));
+        return '<small>PKR</small> ' + new Intl.NumberFormat('en-US').format(Math.round(parseNumber(amount)));
     }
 
     function formatMonth(monthStr) {
@@ -314,75 +336,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateDashboard() {
         const records = getRecords();
-        const fundsList = getFunds();
+        const funds = getFunds();
+        const selectedYear = filterYear.value;
+
+        // Filter data by year
+        const filteredRecords = selectedYear === 'all' 
+            ? records 
+            : records.filter(r => r.month.startsWith(selectedYear));
+        
+        const filteredFunds = selectedYear === 'all'
+            ? funds
+            : funds.filter(f => f.month.startsWith(selectedYear));
+
+        updateYearFilter();
 
         let totalGross = 0;
         let totalBasic = 0;
         let totalOT = 0;
-
         let totalDeduction = 0;
         let totalPF = 0;
         let totalTax = 0;
         let totalShort = 0;
         let totalEOBI = 0;
         let totalOthers = 0;
-
         let totalNet = 0;
         let totalFunds = 0;
 
-        // Sum Salary Records
-        records.forEach(r => {
-            totalGross += parseNumber(r.grossSalary);
-            totalBasic += parseNumber(r.salary);
-            totalOT += parseNumber(r.otAmount);
-
-            totalDeduction += parseNumber(r.overallDeduction);
-            totalPF += parseNumber(r.pfDeduction);
-            totalTax += parseNumber(r.incomeTax);
-            totalShort += parseNumber(r.shortTimeAmount);
-            
-            // Others = WithoutPay + AbsentDeduction
-            let eobi = parseNumber(r.eobiDeduction);
-            totalEOBI += eobi;
-            let wp = parseNumber(r.withoutPay);
-            let absent = (parseNumber(r.absentDays)) * ((parseNumber(r.salary)) / 26);
-            totalOthers += (wp + absent);
-
-            totalNet += parseNumber(r.netPayable);
+        filteredRecords.forEach(record => {
+            totalBasic += parseNumber(record.salary);
+            totalOT += parseNumber(record.otAmount);
+            totalPF += parseNumber(record.pfDeduction);
+            totalTax += parseNumber(record.incomeTax);
+            totalShort += parseNumber(record.shortTimeAmount);
+            totalEOBI += parseNumber(record.eobiDeduction);
+            totalOthers += (parseNumber(record.withoutPay) + (parseNumber(record.absentDays) * (parseNumber(record.salary) / 26)));
+            totalDeduction += parseNumber(record.overallDeduction);
+            totalNet += parseNumber(record.netPayable);
         });
 
-        // Add Funds
-        fundsList.forEach(f => {
-            let amt = parseNumber(f.amount);
-            totalFunds += amt;
-            totalGross += amt; // Add funds to Gross
-            totalNet += amt;   // Add funds to overall net
+        filteredFunds.forEach(f => {
+            totalFunds += parseNumber(f.amount);
         });
 
         // Update UI
-        dashStats.gross.textContent = formatCurrency(totalGross);
-        dashStats.basic.textContent = formatCurrency(totalBasic);
-        dashStats.ot.textContent = formatCurrency(totalOT);
-        if(dashStats.funds) dashStats.funds.textContent = formatCurrency(totalFunds);
+        dashStats.gross.innerHTML = formatCurrency(totalNet + totalDeduction);
+        dashStats.basic.innerHTML = formatCurrency(totalBasic);
+        dashStats.ot.innerHTML = formatCurrency(totalOT);
+        if(dashStats.funds) dashStats.funds.innerHTML = formatCurrency(totalFunds);
 
-        dashStats.deduction.textContent = formatCurrency(totalDeduction);
-        dashStats.pf.textContent = formatCurrency(totalPF);
-        dashStats.tax.textContent = formatCurrency(totalTax);
-        dashStats.short.textContent = formatCurrency(totalShort);
-        if(dashStats.eobi) dashStats.eobi.textContent = formatCurrency(totalEOBI);
-        dashStats.others.textContent = formatCurrency(totalOthers);
+        dashStats.deduction.innerHTML = formatCurrency(totalDeduction);
+        dashStats.pf.innerHTML = formatCurrency(totalPF);
+        dashStats.tax.innerHTML = formatCurrency(totalTax);
+        dashStats.short.innerHTML = formatCurrency(totalShort);
+        if(dashStats.eobi) dashStats.eobi.innerHTML = formatCurrency(totalEOBI);
+        dashStats.others.innerHTML = formatCurrency(totalOthers);
 
-        dashStats.net.textContent = formatCurrency(totalNet);
-        if(dashStats.netReg) dashStats.netReg.textContent = formatCurrency(totalNet - totalOT);
-        if(dashStats.netOT) dashStats.netOT.textContent = formatCurrency(totalOT);
+        dashStats.net.innerHTML = formatCurrency(totalNet + totalFunds);
+        if(dashStats.netReg) dashStats.netReg.innerHTML = formatCurrency(totalNet - totalOT);
+        if(dashStats.netOT) dashStats.netOT.innerHTML = formatCurrency(totalOT);
 
-        const avg = records.length > 0 ? (totalNet / records.length) : 0;
-        const avgReg = records.length > 0 ? ((totalNet - totalOT) / records.length) : 0;
-        const avgOT = records.length > 0 ? (totalOT / records.length) : 0;
+        const avg = filteredRecords.length > 0 ? ((totalNet + totalFunds) / filteredRecords.length) : 0;
+        const avgReg = filteredRecords.length > 0 ? ((totalNet - totalOT) / filteredRecords.length) : 0;
+        const avgOT = filteredRecords.length > 0 ? (totalOT / filteredRecords.length) : 0;
 
-        dashStats.avg.textContent = formatCurrency(avg);
-        if(dashStats.avgReg) dashStats.avgReg.textContent = formatCurrency(avgReg);
-        if(dashStats.avgOT) dashStats.avgOT.textContent = formatCurrency(avgOT);
+        dashStats.avg.innerHTML = formatCurrency(avg);
+        if(dashStats.avgReg) dashStats.avgReg.innerHTML = formatCurrency(avgReg);
+        if(dashStats.avgOT) dashStats.avgOT.innerHTML = formatCurrency(avgOT);
     }
 
     // --- UI Logic ---
@@ -432,43 +451,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderTable() {
         const records = getRecords();
-        recordsTableBody.innerHTML = '';
-        statCount.textContent = records.length;
+        const selectedYear = filterYear.value;
+        const filtered = selectedYear === 'all' 
+            ? records 
+            : records.filter(r => r.month.startsWith(selectedYear));
 
-        if (records.length === 0) {
-            recordsTableBody.innerHTML = '<tr class="empty-row"><td colspan="19">No records found. Add a salary entry to see it here.</td></tr>';
+        recordsTableBody.innerHTML = '';
+        statCount.textContent = filtered.length;
+
+        if (filtered.length === 0) {
+            recordsTableBody.innerHTML = '<tr class="empty-row"><td colspan="11">No records found.</td></tr>';
             return;
         }
 
-        records.forEach(record => {
+        filtered.forEach(record => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${formatMonth(record.month)}</strong></td>
-                <td>${formatCurrency(record.salary)}</td>
-                <td>${record.totalDays || '-'}</td>
-                <td>${record.workingDays || '-'}</td>
-                <td>${record.absentDays || '-'}</td>
-                <td>${record.leavesWithPay || '-'}</td>
-                <td>${record.shortTime || '-'}</td>
-                <td class="deduction-text">${formatCurrency(record.shortTimeAmount)}</td>
-                <td>${record.otTime || '-'}</td>
-                <td class="addition-text">${formatCurrency(record.otAmount)}</td>
-                <td class="deduction-text">${formatCurrency(record.pfDeduction)}</td>
-                <td class="deduction-text">${formatCurrency(record.eobiDeduction)}</td>
-                <td class="deduction-text">${formatCurrency(record.incomeTax)}</td>
-                <td class="deduction-text">${formatCurrency(record.withoutPay)}</td>
-                <td class="deduction-text"><strong>${formatCurrency(record.overallDeduction)}</strong></td>
-                <td class="addition-text"><strong>${formatCurrency(record.grossSalary)}</strong></td>
-                <td class="net-text"><strong>${formatCurrency(record.netPayable)}</strong></td>
-                <td>${record.remarks || '-'}</td>
+                <td>${formatNumber(record.salary)}</td>
+                <td>${formatNumber(record.pfDeduction)}</td>
+                <td>${formatNumber(record.eobiDeduction)}</td>
+                <td>${formatNumber(record.incomeTax)}</td>
+                <td>${formatNumber(record.withoutPay)}</td>
+                <td class="deduction-text">${formatNumber(record.overallDeduction)}</td>
+                <td class="addition-text">${formatNumber(record.grossSalary)}</td>
+                <td class="net-text"><strong>${formatNumber(record.netPayable)}</strong></td>
+                <td class="remarks-cell" title="${record.remarks || ''}">${record.remarks || '-'}</td>
                 <td>
-                    <button class="btn-sm btn-outline edit-btn" data-month="${record.month}">Edit</button>
-                    <button class="btn-sm btn-danger-outline delete-btn" data-month="${record.month}">Del</button>
+                    <div class="table-actions">
+                        <button class="btn-icon-table edit-btn" data-month="${record.month}" title="Edit">✏️</button>
+                        <button class="btn-icon-table delete-btn" data-month="${record.month}" title="Delete">🗑️</button>
+                    </div>
                 </td>
             `;
             recordsTableBody.appendChild(tr);
         });
 
+        // Add Listeners
         document.querySelectorAll('.edit-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const month = btn.getAttribute('data-month');
@@ -499,11 +518,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${formatMonth(fund.month)}</strong></td>
-                <td><span class="badge">${fund.type}</span></td>
-                <td class="addition-text"><strong>${formatCurrency(fund.amount)}</strong></td>
-                <td>${fund.remarks || '-'}</td>
+                <td><span class="badge net-text">${fund.type}</span></td>
+                <td class="addition-text"><strong>${formatNumber(fund.amount)}</strong></td>
+                <td class="remarks-cell" title="${fund.remarks || ''}">${fund.remarks || '-'}</td>
                 <td>
-                    <button class="btn-sm btn-danger-outline delete-fund-btn" data-id="${fund.id}">Del</button>
+                    <div class="table-actions">
+                        <button class="btn-icon-table delete-fund-btn" data-id="${fund.id}" title="Delete">🗑️</button>
+                    </div>
                 </td>
             `;
             fundsTableBody.appendChild(tr);
@@ -517,16 +538,89 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function addLog(action, itemType, itemId, remarks = '') {
+        const log = {
+            id: Date.now(),
+            timestamp: new Date().toISOString(),
+            action: action, // ADD, EDIT, DELETE
+            itemType: itemType, // SALARY, FUND
+            itemId: itemId,
+            remarks: remarks
+        };
+
+        if (db) {
+            db.ref('activity_logs/' + log.id).set(log);
+        } else {
+            const logs = getLogs();
+            logs.unshift(log);
+            localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(logs.slice(0, 100)));
+            renderLogsTable();
+        }
+    }
+
+    function renderLogsTable() {
+        const logs = getLogs().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        logsTableBody.innerHTML = '';
+        logsCount.textContent = logs.length;
+
+        if (logs.length === 0) {
+            logsTableBody.innerHTML = '<tr class="empty-row"><td colspan="5">No recent activity.</td></tr>';
+            return;
+        }
+
+        logs.forEach(log => {
+            const date = new Date(log.timestamp);
+            const timeStr = date.toLocaleString();
+            const actionClass = log.action === 'DELETE' ? 'deduction-text' : (log.action === 'ADD' ? 'addition-text' : 'net-text');
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><small>${timeStr}</small></td>
+                <td><span class="badge ${actionClass}">${log.action}</span></td>
+                <td>${log.itemType}</td>
+                <td><strong>${log.itemId}</strong></td>
+                <td>${log.remarks || '-'}</td>
+            `;
+            logsTableBody.appendChild(tr);
+        });
+    }
+
+    function updateYearFilter() {
+        const records = getRecords();
+        const funds = getFunds();
+        const years = new Set();
+        
+        records.forEach(r => years.add(r.month.split('-')[0]));
+        funds.forEach(f => years.add(f.month.split('-')[0]));
+        
+        const sortedYears = Array.from(years).sort((a, b) => b - a);
+        const currentVal = filterYear.value;
+        
+        filterYear.innerHTML = '<option value="all">All Years</option>';
+        sortedYears.forEach(year => {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            filterYear.appendChild(option);
+        });
+        
+        filterYear.value = currentVal;
+    }
+
     function deleteFund(id) {
+        const funds = getFunds();
+        const fund = funds.find(f => f.id.toString() === id.toString());
+        const info = fund ? `${fund.type} (${fund.month})` : id;
+
         if (db) {
             db.ref('funds_records/' + id).remove();
         } else {
-            let funds = getFunds();
-            funds = funds.filter(f => f.id.toString() !== id.toString());
-            localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(funds));
+            let filtered = funds.filter(f => f.id.toString() !== id.toString());
+            localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(filtered));
             renderFundsTable();
             updateDashboard();
         }
+        addLog('DELETE', 'FUND', info);
     }
 
     function deleteRecord(month) {
@@ -540,6 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderTable();
             updateDashboard();
         }
+        addLog('DELETE', 'SALARY', month);
     }
 
     function loadRecordIntoForm(month) {
@@ -621,8 +716,26 @@ document.addEventListener('DOMContentLoaded', () => {
     tabFunds.addEventListener('click', () => {
         tabFunds.classList.add('active');
         tabSalary.classList.remove('active');
+        tabLogs.classList.remove('active');
         fundsSection.classList.remove('d-none');
         salarySection.classList.add('d-none');
+        logsSection.classList.add('d-none');
+        renderFundsTable();
+    });
+
+    tabLogs.addEventListener('click', () => {
+        tabLogs.classList.add('active');
+        tabSalary.classList.remove('active');
+        tabFunds.classList.remove('active');
+        logsSection.classList.remove('d-none');
+        salarySection.classList.add('d-none');
+        fundsSection.classList.add('d-none');
+        renderLogsTable();
+    });
+
+    filterYear.addEventListener('change', () => {
+        updateDashboard();
+        renderTable();
         renderFundsTable();
     });
 

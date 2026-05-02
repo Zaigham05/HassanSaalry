@@ -18,6 +18,10 @@
                 <h1>Salary Analysis</h1>
             </div>
             <div class="header-actions">
+                <select id="filter-year" class="btn btn-outline filter-select">
+                    <option value="all">All Years</option>
+                    <!-- Years will be added by JS -->
+                </select>
                 <button id="add-salary-btn" class="btn btn-primary">Add Salary Record</button>
                 <button id="add-funds-btn" class="btn btn-outline">Add Funds</button>
                 <button id="toggle-data-btn" class="btn btn-outline">Show Salary Data</button>
@@ -73,6 +77,7 @@
                 <div class="data-tabs">
                     <button id="tab-salary" class="tab-btn active">Salary Records</button>
                     <button id="tab-funds" class="tab-btn">Managed Funds</button>
+                    <button id="tab-logs" class="tab-btn">Activity Logs</button>
                 </div>
 
                 <!-- Salary Section -->
@@ -134,106 +139,145 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- Logs Section -->
+                <div id="logs-section" class="d-none">
+                    <div class="card-header">
+                        <h2>Activity History</h2>
+                        <div class="stat-pill">
+                            <span class="stat-label">Total Logs:</span>
+                            <span id="logs-count" class="stat-value">0</span>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>TIME</th>
+                                    <th>ACTION</th>
+                                    <th>ITEM</th>
+                                    <th>ID / MONTH</th>
+                                    <th>REMARKS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs-body">
+                                <!-- JS injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
 
-    <!-- Salary Entry Modal -->
+    <!-- Salary Modal -->
     <div id="salary-modal" class="modal-overlay hidden">
-        <div class="modal-content card form-section">
-            <div class="card-header modal-header">
-                <h2>New Salary Entry</h2>
-                <button class="btn-icon close-modal" data-target="salary-modal">✕</button>
+        <div class="card modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2>New Salary Entry</h2>
+                    <p class="text-secondary">Enter the details below. Most calculations are handled automatically.</p>
+                </div>
+                <button class="close-modal">&times;</button>
             </div>
-            <p class="modal-desc">Enter the details below. Most calculations are handled automatically.</p>
-            
-            <form id="salary-form" class="grid-form">
-                <div class="form-group">
-                    <label for="month">Month <span class="required">*</span></label>
-                    <input type="month" id="month" required>
-                </div>
-                <div class="form-group">
-                    <label for="salary">Base Salary <span class="required">*</span></label>
-                    <input type="text" inputmode="numeric" id="salary" placeholder="e.g. 50,000" required>
-                </div>
-                <div class="form-group">
-                    <label for="total-days">Total Days</label>
-                    <input type="number" id="total-days" value="30" min="1" max="31" required>
-                </div>
-                <div class="form-group">
-                    <label for="working-days">Working Days (Auto)</label>
-                    <input type="number" id="working-days" value="26" step="0.5" class="auto-calc" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="absent-days">Absent Days</label>
-                    <input type="number" id="absent-days" value="0" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label for="leaves-with-pay">Leaves with Pay</label>
-                    <input type="number" id="leaves-with-pay" value="0" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label for="short-time">Short Time (HH:MM:SS)</label>
-                    <input type="text" id="short-time" value="00:00:00" placeholder="00:00:00">
-                </div>
-                <div class="form-group">
-                    <label for="short-time-amount">Short Time Amount (Auto)</label>
-                    <input type="text" id="short-time-amount" value="0" class="auto-calc deduction-text" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="ot-time">OT Time (HH:MM:SS)</label>
-                    <input type="text" id="ot-time" value="00:00:00" placeholder="00:00:00">
-                </div>
-                <div class="form-group">
-                    <label for="ot-amount">Over Time Amount (Auto)</label>
-                    <input type="text" id="ot-amount" value="0" class="auto-calc addition-text" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="pf-deduction">PF Deduction (8.34%)</label>
-                    <div class="input-with-action">
-                        <input type="text" id="pf-deduction" value="0" class="auto-calc deduction-text" readonly>
-                        <button type="button" class="btn-icon unlock-btn" data-target="pf-deduction">🔒</button>
+            <form id="salary-form">
+                <div class="grid-form pro-grid">
+                    <div class="form-group">
+                        <label>Month <span class="required">*</span></label>
+                        <input type="month" id="month" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Base Salary <span class="required">*</span></label>
+                        <input type="text" id="salary" placeholder="e.g. 50,000" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Total Days</label>
+                        <input type="number" id="total-days" value="26">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Working Days (Auto)</label>
+                        <input type="number" id="working-days" class="auto-calc" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Absent Days</label>
+                        <input type="number" id="absent-days" value="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Leaves with Pay</label>
+                        <input type="number" id="leaves-with-pay" value="0" step="0.01">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Short Time (HH:MM:SS)</label>
+                        <input type="text" id="short-time" value="00:00:00">
+                    </div>
+                    <div class="form-group">
+                        <label>Short Time Amount (Auto)</label>
+                        <input type="text" id="short-time-amount" class="auto-calc deduction-text" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>OT Time (HH:MM:SS)</label>
+                        <input type="text" id="ot-time" value="00:00:00">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Over Time Amount (Auto)</label>
+                        <input type="text" id="ot-amount" class="auto-calc addition-text" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>PF Deduction (8.34%)</label>
+                        <div class="input-with-action">
+                            <input type="text" id="pf-deduction" class="auto-calc deduction-text" readonly>
+                            <button type="button" class="unlock-btn" data-target="pf-deduction">🔒</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>EOBI Deduction</label>
+                        <div class="input-with-action">
+                            <input type="text" id="eobi-deduction" class="auto-calc deduction-text" readonly>
+                            <button type="button" class="unlock-btn" data-target="eobi-deduction">🔒</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Income Tax</label>
+                        <div class="input-with-action">
+                            <input type="text" id="income-tax" class="auto-calc deduction-text" readonly>
+                            <button type="button" class="unlock-btn" data-target="income-tax">🔒</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Without Pay (Manual)</label>
+                        <input type="text" id="without-pay" value="0">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Remarks</label>
+                        <input type="text" id="remarks" placeholder="Any additional notes...">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="eobi-deduction">EOBI Deduction</label>
-                    <div class="input-with-action">
-                        <input type="text" id="eobi-deduction" value="270" class="auto-calc deduction-text" readonly>
-                        <button type="button" class="btn-icon unlock-btn" data-target="eobi-deduction">🔒</button>
+
+                <div class="modal-summary-grid">
+                    <div class="summary-card deduction-bg">
+                        <label>Over All Deduction (Auto)</label>
+                        <input type="text" id="overall-deduction" class="stat-main-sm deduction-text" readonly>
+                    </div>
+                    <div class="summary-card addition-bg">
+                        <label>Gross Salary (Auto)</label>
+                        <input type="text" id="gross-salary" class="stat-main-sm addition-text" readonly>
+                    </div>
+                    <div class="summary-card net-bg">
+                        <label>Net Payable (Auto)</label>
+                        <input type="text" id="net-payable" class="stat-main-sm net-text" readonly>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="income-tax">Income Tax</label>
-                    <div class="input-with-action">
-                        <input type="text" id="income-tax" value="0" class="auto-calc deduction-text" readonly>
-                        <button type="button" class="btn-icon unlock-btn" data-target="income-tax">🔒</button>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="without-pay">Without Pay (Manual)</label>
-                    <input type="text" id="without-pay" value="0" class="deduction-text">
-                </div>
-                <div class="form-group full-width">
-                    <label for="remarks">Remarks</label>
-                    <input type="text" id="remarks" placeholder="Any additional notes...">
-                </div>
-                <div class="form-group summary-group deduction-bg">
-                    <label for="overall-deduction">Over All Deduction (Auto)</label>
-                    <input type="text" id="overall-deduction" value="0" class="auto-calc bold-text" readonly>
-                </div>
-                <div class="form-group summary-group addition-bg">
-                    <label for="gross-salary">Gross Salary (Auto)</label>
-                    <input type="text" id="gross-salary" value="0" class="auto-calc bold-text" readonly>
-                </div>
-                <div class="form-group summary-group net-bg">
-                    <label for="net-payable">Net Payable (Auto)</label>
-                    <input type="text" id="net-payable" value="0" class="auto-calc bold-text net-text" readonly>
-                </div>
-                <div class="form-actions full-width">
+
+                <div class="form-actions-center">
                     <button type="submit" class="btn btn-primary">Save Salary Record</button>
                 </div>
             </form>
         </div>
+    </div>
     </div>
 
     <!-- Funds Modal -->

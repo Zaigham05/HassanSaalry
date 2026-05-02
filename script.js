@@ -7,6 +7,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const dataView = document.getElementById('data-view');
     const dashboardCards = document.querySelector('.dashboard-cards');
 
+    const fundsTableBody = document.getElementById('funds-body');
+    const fundsCount = document.getElementById('funds-count');
+    const tabSalary = document.getElementById('tab-salary');
+    const tabFunds = document.getElementById('tab-funds');
+    const salarySection = document.getElementById('salary-section');
+    const fundsSection = document.getElementById('funds-section');
+
+    let deleteTarget = null; // { type: 'record'|'fund', id: string }
+
     // Dashboard Stat Elements
     const dashStats = {
         gross: document.getElementById('dash-gross'),
@@ -130,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const recordsArray = Object.values(data).sort((a, b) => new Date(b.month) - new Date(a.month));
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(recordsArray));
                         renderTable();
+                        renderFundsTable();
                         updateDashboard();
                     }
                 } catch (e) {
@@ -148,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = snapshot.val();
                 if (data) {
                     localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(Object.values(data)));
+                    renderFundsTable();
                     updateDashboard();
                 }
             });
@@ -463,10 +474,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                monthToDelete = btn.getAttribute('data-month');
+                deleteTarget = { type: 'record', id: btn.getAttribute('data-month') };
                 deleteModal.classList.remove('hidden');
             });
         });
+    }
+
+    function renderFundsTable() {
+        const funds = getFunds();
+        fundsTableBody.innerHTML = '';
+        fundsCount.textContent = funds.length;
+
+        if (funds.length === 0) {
+            fundsTableBody.innerHTML = '<tr class="empty-row"><td colspan="5">No managed funds found.</td></tr>';
+            return;
+        }
+
+        funds.forEach(fund => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${formatMonth(fund.month)}</strong></td>
+                <td><span class="badge">${fund.type}</span></td>
+                <td class="addition-text"><strong>${formatCurrency(fund.amount)}</strong></td>
+                <td>${fund.remarks || '-'}</td>
+                <td>
+                    <button class="btn-sm btn-danger-outline delete-fund-btn" data-id="${fund.id}">Del</button>
+                </td>
+            `;
+            fundsTableBody.appendChild(tr);
+        });
+
+        document.querySelectorAll('.delete-fund-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                deleteTarget = { type: 'fund', id: btn.getAttribute('data-id') };
+                deleteModal.classList.remove('hidden');
+            });
+        });
+    }
+
+    function deleteFund(id) {
+        if (db) {
+            db.ref('funds_records/' + id).remove();
+        } else {
+            let funds = getFunds();
+            funds = funds.filter(f => f.id.toString() !== id.toString());
+            localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(funds));
+            renderFundsTable();
+            updateDashboard();
+        }
     }
 
     function deleteRecord(month) {
@@ -548,17 +603,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    tabSalary.addEventListener('click', () => {
+        tabSalary.classList.add('active');
+        tabFunds.classList.remove('active');
+        salarySection.classList.remove('d-none');
+        fundsSection.classList.add('d-none');
+    });
+
+    tabFunds.addEventListener('click', () => {
+        tabFunds.classList.add('active');
+        tabSalary.classList.remove('active');
+        fundsSection.classList.remove('d-none');
+        salarySection.classList.add('d-none');
+        renderFundsTable();
+    });
+
     confirmDeleteBtn.addEventListener('click', () => {
-        if (monthToDelete) {
-            deleteRecord(monthToDelete);
+        if (deleteTarget) {
+            if (deleteTarget.type === 'record') {
+                deleteRecord(deleteTarget.id);
+            } else if (deleteTarget.type === 'fund') {
+                deleteFund(deleteTarget.id);
+            }
             deleteModal.classList.add('hidden');
-            monthToDelete = null;
+            deleteTarget = null;
         }
     });
 
     cancelDeleteBtn.addEventListener('click', () => {
         deleteModal.classList.add('hidden');
-        monthToDelete = null;
+        deleteTarget = null;
     });
 
     // --- Initialization ---
@@ -573,5 +647,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     calculate();
     renderTable();
+    renderFundsTable();
     updateDashboard();
 });

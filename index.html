@@ -80,19 +80,21 @@
                     </div>
                 </div>
                 
+        <!-- Data Tables Section -->
         <div id="data-view" class="card d-none">
             <div class="data-tabs">
                 <button id="tab-salary" class="tab-btn active">Salary Records</button>
                 <button id="tab-funds" class="tab-btn">Managed Funds</button>
             </div>
 
+            <!-- Salary Section -->
             <div id="salary-section">
                 <div class="card-header">
                     <h2>All Salary Data</h2>
                     <div class="stat-badge">Total Records: <span id="stat-count">0</span></div>
                 </div>
                 <div class="table-container">
-                    <table>
+                    <table style="width: 100%;">
                         <thead>
                             <tr>
                                 <th>MONTH</th>
@@ -109,19 +111,20 @@
                             </tr>
                         </thead>
                         <tbody id="records-body">
-                            <!-- Data injected here -->
+                            <!-- JS will inject rows here -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
+            <!-- Funds Section -->
             <div id="funds-section" class="d-none">
                 <div class="card-header">
                     <h2>All Managed Funds</h2>
                     <div class="stat-badge">Total Items: <span id="funds-count">0</span></div>
                 </div>
                 <div class="table-container">
-                    <table>
+                    <table style="width: 100%;">
                         <thead>
                             <tr>
                                 <th>MONTH</th>
@@ -132,7 +135,7 @@
                             </tr>
                         </thead>
                         <tbody id="funds-body">
-                            <!-- Funds injected here -->
+                            <!-- JS will inject rows here -->
                         </tbody>
                     </table>
                 </div>

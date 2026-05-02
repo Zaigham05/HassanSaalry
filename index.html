@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salary Analysis Dashboard</title>
+    <meta name="description" content="A comprehensive and modern Salary Analysis Web Application.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="header">
+            <div class="logo-area">
+                <div class="logo-icon"></div>
+                <h1>Salary Analysis</h1>
+            </div>
+            <div class="header-actions">
+                <button id="add-salary-btn" class="btn btn-primary">Add Salary Record</button>
+                <button id="add-funds-btn" class="btn btn-outline">Add Funds</button>
+                <button id="toggle-data-btn" class="btn btn-outline">Show Salary Data</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Dashboard Summary Cards -->
+            <section class="dashboard-cards">
+                <div class="card stat-card addition-card">
+                    <h3>Total Gross</h3>
+                    <div class="stat-main" id="dash-gross">0</div>
+                    <div class="stat-subs">
+                        <div>Basic: <span id="dash-basic">0</span></div>
+                        <div>OT: <span id="dash-ot">0</span></div>
+                        <div>Funds: <span id="dash-funds">0</span></div>
+                    </div>
+                </div>
+
+                <div class="card stat-card deduction-card">
+                    <h3>Total Deduction</h3>
+                    <div class="stat-main" id="dash-deduction">0</div>
+                    <div class="stat-subs">
+                        <div>PF: <span id="dash-pf">0</span></div>
+                        <div>Tax: <span id="dash-tax">0</span></div>
+                        <div>Short Time: <span id="dash-short">0</span></div>
+                        <div>EOBI: <span id="dash-eobi">0</span></div>
+                        <div>Others: <span id="dash-others">0</span></div>
+                    </div>
+                </div>
+
+                <div class="card stat-card net-card">
+                    <h3>Total Net</h3>
+                    <div class="stat-main" id="dash-net">0</div>
+                    <div class="stat-subs">
+                        <div>Regular: <span id="dash-net-reg">0</span></div>
+                        <div>OT: <span id="dash-net-ot">0</span></div>
+                    </div>
+                </div>
+
+                <div class="card stat-card avg-card">
+                    <h3>Avg Salary</h3>
+                    <div class="stat-main" id="dash-avg">0</div>
+                    <div class="stat-subs">
+                        <div>Regular: <span id="dash-avg-reg">0</span></div>
+                        <div>OT: <span id="dash-avg-ot">0</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Dashboard Summary / List (Massive Table) -->
+            <section id="data-view" class="card list-section d-none">
+                <div class="card-header">
+                    <h2>All Salary Data</h2>
+                    <div class="summary-stats">
+                        <div class="stat-pill">
+                            <span class="stat-label">Total Records:</span>
+                            <span id="stat-count" class="stat-value">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-container full-width-table">
+                    <table id="records-table">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Base Salary</th>
+                                <th>Total Days</th>
+                                <th>Work Days</th>
+                                <th>Absent</th>
+                                <th>Leave w/Pay</th>
+                                <th>Short Time</th>
+                                <th>Short Amt</th>
+                                <th>OT Time</th>
+                                <th>OT Amt</th>
+                                <th>PF Deduct</th>
+                                <th>EOBI</th>
+                                <th>Tax</th>
+                                <th>Without Pay</th>
+                                <th>Total Deduct</th>
+                                <th>Gross</th>
+                                <th>Net Payable</th>
+                                <th>Remarks</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="records-body">
+                            <!-- JS injected rows -->
+                            <tr class="empty-row"><td colspan="19">No records found. Add a salary entry to see it here.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Salary Entry Modal -->
+    <div id="salary-modal" class="modal-overlay hidden">
+        <div class="modal-content card form-section">
+            <div class="card-header modal-header">
+                <h2>New Salary Entry</h2>
+                <button class="btn-icon close-modal" data-target="salary-modal">✕</button>
+            </div>
+            <p class="modal-desc">Enter the details below. Most calculations are handled automatically.</p>
+            
+            <form id="salary-form" class="grid-form">
+                <!-- Base Details -->
+                <div class="form-group">
+                    <label for="month">Month <span class="required">*</span></label>
+                    <input type="month" id="month" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="salary">Base Salary <span class="required">*</span></label>
+                    <input type="text" inputmode="numeric" id="salary" placeholder="e.g. 50,000" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="total-days">Total Days</label>
+                    <input type="number" id="total-days" value="30" min="1" max="31" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="working-days">Working Days (Auto)</label>
+                    <input type="number" id="working-days" value="26" step="0.5" class="auto-calc" readonly>
+                </div>
+
+                <!-- Attendance & Time -->
+                <div class="form-group">
+                    <label for="absent-days">Absent Days</label>
+                    <input type="number" id="absent-days" value="0" min="0" step="0.5">
+                </div>
+
+                <div class="form-group">
+                    <label for="leaves-with-pay">Leaves with Pay</label>
+                    <input type="number" id="leaves-with-pay" value="0" min="0" step="0.5">
+                </div>
+
+                <div class="form-group">
+                    <label for="short-time">Short Time (HH:MM:SS)</label>
+                    <input type="text" id="short-time" value="00:00:00" placeholder="00:00:00" pattern="^[0-9]+:[0-5][0-9]:[0-5][0-9]$" title="Enter duration in HH:MM:SS format">
+                </div>
+
+                <div class="form-group">
+                    <label for="short-time-amount">Short Time Amount (Auto)</label>
+                    <input type="text" inputmode="numeric" id="short-time-amount" value="0" class="auto-calc deduction-text" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="ot-time">OT Time (HH:MM:SS)</label>
+                    <input type="text" id="ot-time" value="00:00:00" placeholder="00:00:00" pattern="^[0-9]+:[0-5][0-9]:[0-5][0-9]$" title="Enter duration in HH:MM:SS format">
+                </div>
+
+                <div class="form-group">
+                    <label for="ot-amount">Over Time Amount (Auto)</label>
+                    <input type="text" inputmode="numeric" id="ot-amount" value="0" class="auto-calc addition-text" readonly>
+                </div>
+
+                <!-- Deductions -->
+                <div class="form-group">
+                    <label for="pf-deduction">PF Deduction (8.34%)</label>
+                    <div class="input-with-action">
+                        <input type="text" inputmode="numeric" id="pf-deduction" value="0" class="auto-calc deduction-text" readonly>
+                        <button type="button" class="btn-icon unlock-btn" data-target="pf-deduction" title="Unlock for manual entry">🔒</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="eobi-deduction">EOBI Deduction</label>
+                    <div class="input-with-action">
+                        <input type="text" inputmode="numeric" id="eobi-deduction" value="270" class="auto-calc deduction-text" readonly>
+                        <button type="button" class="btn-icon unlock-btn" data-target="eobi-deduction" title="Unlock for manual entry">🔒</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="income-tax">Income Tax</label>
+                    <div class="input-with-action">
+                        <input type="text" inputmode="numeric" id="income-tax" value="0" class="auto-calc deduction-text" readonly>
+                        <button type="button" class="btn-icon unlock-btn" data-target="income-tax" title="Unlock for manual entry">🔒</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="without-pay">Without Pay (Manual)</label>
+                    <input type="text" inputmode="numeric" id="without-pay" value="0" class="deduction-text">
+                </div>
+                
+                <div class="form-group full-width">
+                    <label for="remarks">Remarks</label>
+                    <input type="text" id="remarks" placeholder="Any additional notes...">
+                </div>
+
+                <!-- Totals -->
+                <div class="form-group summary-group deduction-bg">
+                    <label for="overall-deduction">Over All Deduction (Auto)</label>
+                    <input type="text" inputmode="numeric" id="overall-deduction" value="0" class="auto-calc bold-text" readonly>
+                </div>
+
+                <div class="form-group summary-group addition-bg">
+                    <label for="gross-salary">Gross Salary (Auto)</label>
+                    <input type="text" inputmode="numeric" id="gross-salary" value="0" class="auto-calc bold-text" readonly>
+                </div>
+
+                <div class="form-group summary-group net-bg">
+                    <label for="net-payable">Net Payable (Auto)</label>
+                    <input type="text" inputmode="numeric" id="net-payable" value="0" class="auto-calc bold-text net-text" readonly>
+                </div>
+
+                <div class="form-actions full-width">
+                    <button type="submit" class="btn btn-primary">Save Salary Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Funds Modal -->
+    <div id="funds-modal" class="modal-overlay hidden">
+        <div class="modal-content card form-section modal-sm">
+            <div class="card-header modal-header">
+                <h2>Add Funds</h2>
+                <button class="btn-icon close-modal" data-target="funds-modal">✕</button>
+            </div>
+            <form id="funds-form" class="grid-form single-col">
+                <div class="form-group">
+                    <label for="funds-month">Month <span class="required">*</span></label>
+                    <input type="month" id="funds-month" required>
+                </div>
+                <div class="form-group">
+                    <label for="funds-type">Fund Type <span class="required">*</span></label>
+                    <select id="funds-type" required>
+                        <option value="" disabled selected>Select Type</option>
+                        <option value="Yearly Bonus">Yearly Bonus</option>
+                        <option value="WPPF (5%)">WPPF (5%)</option>
+                        <option value="Allowances">Allowances</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="funds-amount">Amount <span class="required">*</span></label>
+                    <input type="number" id="funds-amount" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="funds-remarks">Remarks</label>
+                    <input type="text" id="funds-remarks" placeholder="Extra notes...">
+                </div>
+                <div class="form-actions full-width">
+                    <button type="submit" class="btn btn-primary">Save Funds</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="modal-content card modal-sm">
+            <div class="card-header modal-header">
+                <h2>Confirm Delete</h2>
+                <button class="btn-icon close-modal" data-target="delete-modal">✕</button>
+            </div>
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                <p style="color: var(--text-secondary);">Are you sure you want to delete this record? This action cannot be undone.</p>
+            </div>
+            <div class="form-actions" style="justify-content: center; gap: 1rem;">
+                <button id="cancel-delete" class="btn btn-outline">Cancel</button>
+                <button id="confirm-delete-btn" class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-danger) 0%, #b91c1c 100%); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);">Delete Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <script src="script.js"></script>
+</body>
+</html>

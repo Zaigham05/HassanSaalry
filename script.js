@@ -106,27 +106,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Firebase Sync Logic (One-time setup) ---
     function setupFirebaseSync() {
-        if (!db) return;
+        if (!db) {
+            console.warn("Firebase not initialized. Using local storage only.");
+            return;
+        }
 
-        // Listen for Salary Records
-        db.ref('salary_records').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                const recordsArray = Object.values(data).sort((a, b) => new Date(b.month) - new Date(a.month));
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(recordsArray));
-                renderTable();
-                updateDashboard();
-            }
-        });
+        try {
+            // Create a small status indicator in the UI
+            const statusDiv = document.createElement('div');
+            statusDiv.id = 'cloud-status';
+            statusDiv.style = 'position:fixed; bottom:10px; right:10px; font-size:10px; color:#64748b; background:rgba(15,23,42,0.8); padding:4px 8px; border-radius:4px; z-index:9999; border:1px solid rgba(255,255,255,0.1);';
+            statusDiv.textContent = '☁️ Connecting...';
+            document.body.appendChild(statusDiv);
 
-        // Listen for Funds
-        db.ref('funds_records').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(Object.values(data)));
-                updateDashboard();
-            }
-        });
+            // Listen for Salary Records
+            db.ref('salary_records').on('value', (snapshot) => {
+                try {
+                    const data = snapshot.val();
+                    statusDiv.textContent = '☁️ Cloud Synced';
+                    statusDiv.style.color = '#10b981'; // Green
+                    
+                    if (data) {
+                        const recordsArray = Object.values(data).sort((a, b) => new Date(b.month) - new Date(a.month));
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(recordsArray));
+                        renderTable();
+                        updateDashboard();
+                    }
+                } catch (e) {
+                    console.error("Error processing Firebase data:", e);
+                    statusDiv.textContent = '⚠️ Sync Error';
+                    statusDiv.style.color = '#ef4444';
+                }
+            }, (error) => {
+                console.error("Firebase permission error:", error);
+                statusDiv.textContent = '🚫 Access Denied';
+                statusDiv.style.color = '#ef4444';
+            });
+
+            // Listen for Funds
+            db.ref('funds_records').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(Object.values(data)));
+                    updateDashboard();
+                }
+            });
+        } catch (err) {
+            console.error("Firebase setup failed:", err);
+        }
     }
 
     function saveRecord(record) {

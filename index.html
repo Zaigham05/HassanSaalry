@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=1.3">
 </head>
 <body>
     <div class="dashboard-container">
@@ -68,79 +68,73 @@
                 </div>
             </section>
 
-            <!-- Dashboard Summary / List (Massive Table) -->
-            <section id="data-view" class="card list-section d-none">
-                <div class="card-header">
-                    <h2>All Salary Data</h2>
-                    <div class="summary-stats">
+            <!-- Data Tables Section -->
+            <div id="data-view" class="card list-section d-none">
+                <div class="data-tabs">
+                    <button id="tab-salary" class="tab-btn active">Salary Records</button>
+                    <button id="tab-funds" class="tab-btn">Managed Funds</button>
+                </div>
+
+                <!-- Salary Section -->
+                <div id="salary-section">
+                    <div class="card-header">
+                        <h2>All Salary Data</h2>
                         <div class="stat-pill">
                             <span class="stat-label">Total Records:</span>
                             <span id="stat-count" class="stat-value">0</span>
                         </div>
                     </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>MONTH</th>
+                                    <th>AMT</th>
+                                    <th>PF DEDUCT</th>
+                                    <th>EOBI</th>
+                                    <th>TAX</th>
+                                    <th>WITHOUT PAY</th>
+                                    <th>TOTAL DEDUCT</th>
+                                    <th>GROSS</th>
+                                    <th>NET PAYABLE</th>
+                                    <th>REMARKS</th>
+                                    <th>ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="records-body">
+                                <!-- JS injected here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                
-        <!-- Data Tables Section -->
-        <div id="data-view" class="card d-none">
-            <div class="data-tabs">
-                <button id="tab-salary" class="tab-btn active">Salary Records</button>
-                <button id="tab-funds" class="tab-btn">Managed Funds</button>
-            </div>
 
-            <!-- Salary Section -->
-            <div id="salary-section">
-                <div class="card-header">
-                    <h2>All Salary Data</h2>
-                    <div class="stat-badge">Total Records: <span id="stat-count">0</span></div>
-                </div>
-                <div class="table-container">
-                    <table style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>MONTH</th>
-                                <th>AMT</th>
-                                <th>PF DEDUCT</th>
-                                <th>EOBI</th>
-                                <th>TAX</th>
-                                <th>WITHOUT PAY</th>
-                                <th>TOTAL DEDUCT</th>
-                                <th>GROSS</th>
-                                <th>NET PAYABLE</th>
-                                <th>REMARKS</th>
-                                <th>ACTIONS</th>
-                            </tr>
-                        </thead>
-                        <tbody id="records-body">
-                            <!-- JS will inject rows here -->
-                        </tbody>
-                    </table>
+                <!-- Funds Section -->
+                <div id="funds-section" class="d-none">
+                    <div class="card-header">
+                        <h2>All Managed Funds</h2>
+                        <div class="stat-pill">
+                            <span class="stat-label">Total Items:</span>
+                            <span id="funds-count" class="stat-value">0</span>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>MONTH</th>
+                                    <th>FUND TYPE</th>
+                                    <th>AMOUNT</th>
+                                    <th>REMARKS</th>
+                                    <th>ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="funds-body">
+                                <!-- JS injected here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-
-            <!-- Funds Section -->
-            <div id="funds-section" class="d-none">
-                <div class="card-header">
-                    <h2>All Managed Funds</h2>
-                    <div class="stat-badge">Total Items: <span id="funds-count">0</span></div>
-                </div>
-                <div class="table-container">
-                    <table style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>MONTH</th>
-                                <th>FUND TYPE</th>
-                                <th>AMOUNT</th>
-                                <th>REMARKS</th>
-                                <th>ACTIONS</th>
-                            </tr>
-                        </thead>
-                        <tbody id="funds-body">
-                            <!-- JS will inject rows here -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
         </main>
     </div>
 
@@ -154,109 +148,87 @@
             <p class="modal-desc">Enter the details below. Most calculations are handled automatically.</p>
             
             <form id="salary-form" class="grid-form">
-                <!-- Base Details -->
                 <div class="form-group">
                     <label for="month">Month <span class="required">*</span></label>
                     <input type="month" id="month" required>
                 </div>
-                
                 <div class="form-group">
                     <label for="salary">Base Salary <span class="required">*</span></label>
                     <input type="text" inputmode="numeric" id="salary" placeholder="e.g. 50,000" required>
                 </div>
-
                 <div class="form-group">
                     <label for="total-days">Total Days</label>
                     <input type="number" id="total-days" value="30" min="1" max="31" required>
                 </div>
-                
                 <div class="form-group">
                     <label for="working-days">Working Days (Auto)</label>
                     <input type="number" id="working-days" value="26" step="0.5" class="auto-calc" readonly>
                 </div>
-
-                <!-- Attendance & Time -->
                 <div class="form-group">
                     <label for="absent-days">Absent Days</label>
-                    <input type="number" id="absent-days" value="0" min="0" step="0.5">
+                    <input type="number" id="absent-days" value="0" step="0.01">
                 </div>
-
                 <div class="form-group">
                     <label for="leaves-with-pay">Leaves with Pay</label>
-                    <input type="number" id="leaves-with-pay" value="0" min="0" step="0.5">
+                    <input type="number" id="leaves-with-pay" value="0" step="0.01">
                 </div>
-
                 <div class="form-group">
                     <label for="short-time">Short Time (HH:MM:SS)</label>
-                    <input type="text" id="short-time" value="00:00:00" placeholder="00:00:00" pattern="^[0-9]+:[0-5][0-9]:[0-5][0-9]$" title="Enter duration in HH:MM:SS format">
+                    <input type="text" id="short-time" value="00:00:00" placeholder="00:00:00">
                 </div>
-
                 <div class="form-group">
                     <label for="short-time-amount">Short Time Amount (Auto)</label>
-                    <input type="text" inputmode="numeric" id="short-time-amount" value="0" class="auto-calc deduction-text" readonly>
+                    <input type="text" id="short-time-amount" value="0" class="auto-calc deduction-text" readonly>
                 </div>
-
                 <div class="form-group">
                     <label for="ot-time">OT Time (HH:MM:SS)</label>
-                    <input type="text" id="ot-time" value="00:00:00" placeholder="00:00:00" pattern="^[0-9]+:[0-5][0-9]:[0-5][0-9]$" title="Enter duration in HH:MM:SS format">
+                    <input type="text" id="ot-time" value="00:00:00" placeholder="00:00:00">
                 </div>
-
                 <div class="form-group">
                     <label for="ot-amount">Over Time Amount (Auto)</label>
-                    <input type="text" inputmode="numeric" id="ot-amount" value="0" class="auto-calc addition-text" readonly>
+                    <input type="text" id="ot-amount" value="0" class="auto-calc addition-text" readonly>
                 </div>
-
-                <!-- Deductions -->
                 <div class="form-group">
                     <label for="pf-deduction">PF Deduction (8.34%)</label>
                     <div class="input-with-action">
-                        <input type="text" inputmode="numeric" id="pf-deduction" value="0" class="auto-calc deduction-text" readonly>
-                        <button type="button" class="btn-icon unlock-btn" data-target="pf-deduction" title="Unlock for manual entry">🔒</button>
+                        <input type="text" id="pf-deduction" value="0" class="auto-calc deduction-text" readonly>
+                        <button type="button" class="btn-icon unlock-btn" data-target="pf-deduction">🔒</button>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label for="eobi-deduction">EOBI Deduction</label>
                     <div class="input-with-action">
-                        <input type="text" inputmode="numeric" id="eobi-deduction" value="270" class="auto-calc deduction-text" readonly>
-                        <button type="button" class="btn-icon unlock-btn" data-target="eobi-deduction" title="Unlock for manual entry">🔒</button>
+                        <input type="text" id="eobi-deduction" value="270" class="auto-calc deduction-text" readonly>
+                        <button type="button" class="btn-icon unlock-btn" data-target="eobi-deduction">🔒</button>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label for="income-tax">Income Tax</label>
                     <div class="input-with-action">
-                        <input type="text" inputmode="numeric" id="income-tax" value="0" class="auto-calc deduction-text" readonly>
-                        <button type="button" class="btn-icon unlock-btn" data-target="income-tax" title="Unlock for manual entry">🔒</button>
+                        <input type="text" id="income-tax" value="0" class="auto-calc deduction-text" readonly>
+                        <button type="button" class="btn-icon unlock-btn" data-target="income-tax">🔒</button>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label for="without-pay">Without Pay (Manual)</label>
-                    <input type="text" inputmode="numeric" id="without-pay" value="0" class="deduction-text">
+                    <input type="text" id="without-pay" value="0" class="deduction-text">
                 </div>
-                
                 <div class="form-group full-width">
                     <label for="remarks">Remarks</label>
                     <input type="text" id="remarks" placeholder="Any additional notes...">
                 </div>
-
-                <!-- Totals -->
                 <div class="form-group summary-group deduction-bg">
                     <label for="overall-deduction">Over All Deduction (Auto)</label>
-                    <input type="text" inputmode="numeric" id="overall-deduction" value="0" class="auto-calc bold-text" readonly>
+                    <input type="text" id="overall-deduction" value="0" class="auto-calc bold-text" readonly>
                 </div>
-
                 <div class="form-group summary-group addition-bg">
                     <label for="gross-salary">Gross Salary (Auto)</label>
-                    <input type="text" inputmode="numeric" id="gross-salary" value="0" class="auto-calc bold-text" readonly>
+                    <input type="text" id="gross-salary" value="0" class="auto-calc bold-text" readonly>
                 </div>
-
                 <div class="form-group summary-group net-bg">
                     <label for="net-payable">Net Payable (Auto)</label>
-                    <input type="text" inputmode="numeric" id="net-payable" value="0" class="auto-calc bold-text net-text" readonly>
+                    <input type="text" id="net-payable" value="0" class="auto-calc bold-text net-text" readonly>
                 </div>
-
                 <div class="form-actions full-width">
                     <button type="submit" class="btn btn-primary">Save Salary Record</button>
                 </div>
@@ -287,11 +259,11 @@
                         <option value="Others">Others</option>
                     </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group full-width">
                     <label for="funds-amount">Amount <span class="required">*</span></label>
                     <input type="number" id="funds-amount" min="0" step="0.01" required>
                 </div>
-                <div class="form-group">
+                <div class="form-group full-width">
                     <label for="funds-remarks">Remarks</label>
                     <input type="text" id="funds-remarks" placeholder="Extra notes...">
                 </div>
@@ -311,19 +283,17 @@
             </div>
             <div style="text-align: center; margin-bottom: 2rem;">
                 <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
-                <p style="color: var(--text-secondary);">Are you sure you want to delete this record? This action cannot be undone.</p>
+                <p style="color: var(--text-secondary);">Are you sure you want to delete this record?</p>
             </div>
             <div class="form-actions" style="justify-content: center; gap: 1rem;">
                 <button id="cancel-delete" class="btn btn-outline">Cancel</button>
-                <button id="confirm-delete-btn" class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-danger) 0%, #b91c1c 100%); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);">Delete Now</button>
+                <button id="confirm-delete-btn" class="btn btn-primary">Delete Now</button>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-
-    <script src="script.js"></script>
+    <script src="script.js?v=1.3"></script>
 </body>
 </html>

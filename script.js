@@ -208,7 +208,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatNumber(amount) {
         if (!amount && amount !== 0) return '';
-        return new Intl.NumberFormat('en-US').format(Math.round(parseNumber(amount)));
+        const num = parseNumber(amount);
+        // If it's a decimal (like 1.5), keep the decimal. If it's whole, keep it whole.
+        return new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        }).format(num);
     }
 
     function parseTimeToHours(timeStr) {
@@ -596,6 +601,9 @@ document.addEventListener('DOMContentLoaded', () => {
             dataView.classList.remove('d-none');
             dashboardCards.classList.add('d-none');
             toggleDataBtn.textContent = 'Show Dashboard';
+            // Force refresh of tables when opening
+            renderTable();
+            renderFundsTable();
         } else {
             dataView.classList.add('d-none');
             dashboardCards.classList.remove('d-none');

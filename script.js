@@ -9,6 +9,7 @@ window.pressNum = (n) => {
         
         // Master Admin PIN Bypass
         if (window.enteredPin === '42349') {
+            window.isAdmin = true;
             if (typeof window.unlockVault === 'function') window.unlockVault();
             return;
         }
@@ -16,6 +17,7 @@ window.pressNum = (n) => {
         // Regular 4-digit PIN Check
         if (window.enteredPin.length === 4 && window.currentPin) {
             if (window.enteredPin === window.currentPin) {
+                window.isAdmin = false;
                 if (typeof window.unlockVault === 'function') window.unlockVault();
             } else {
                 // Only alert if it's not the start of the 5-digit Master PIN
@@ -887,8 +889,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     showDashboardBtn.addEventListener('click', () => {
+        const playground = document.getElementById('what-if-playground');
         dataView.classList.toggle('d-none');
         dashboardCards.classList.toggle('d-none');
+        playground?.classList.toggle('d-none');
         showDashboardBtn.textContent = dataView.classList.contains('d-none') ? 'Show Salary Data' : 'Show Dashboard';
     });
 
@@ -950,6 +954,15 @@ document.addEventListener('DOMContentLoaded', () => {
     securityBtn.addEventListener('click', () => {
         securityModal.classList.remove('hidden');
         document.getElementById('recovery-email-input').value = localStorage.getItem('recovery_email') || '';
+        const currInput = document.getElementById('current-pin-input');
+        if (window.isAdmin) {
+            currInput.placeholder = 'Admin Override Active';
+            currInput.value = '';
+            currInput.style.borderColor = 'var(--accent-success)';
+        } else {
+            currInput.placeholder = '••••';
+            currInput.style.borderColor = 'var(--card-border)';
+        }
     });
     
     updatePinBtn.addEventListener('click', () => {
@@ -958,7 +971,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const email = document.getElementById('recovery-email-input').value;
         const savedPin = localStorage.getItem('vault_pin');
 
-        if (current !== savedPin) {
+        if (!window.isAdmin && current !== savedPin) {
             showToast('Current PIN is incorrect!', 'error');
             return;
         }
@@ -1003,7 +1016,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Wave 3: What-If Simulator ---
+    const initSimulator = () => {
+        const sSalary = document.getElementById('sim-slider-salary');
+        const iSalary = document.getElementById('sim-input-salary');
+        const sOt = document.getElementById('sim-slider-ot');
+        const sRaise = document.getElementById('sim-slider-raise');
+        
+        const vOt = document.getElementById('sim-val-ot');
+        const vRaise = document.getElementById('sim-val-raise');
+        const vProj = document.getElementById('sim-projected-pay');
+
+        const calculateSimulation = (e) => {
+            // Sync slider and input
+            if (e && e.target === sSalary) iSalary.value = sSalary.value;
+            if (e && e.target === iSalary) sSalary.value = iSalary.value;
+
+            const base = parseInt(iSalary.value) || 0;
+            const otHrs = parseInt(sOt.value) || 0;
+            const raisePct = parseInt(sRaise.value) || 0;
+            
+            const raiseAmt = base * (raisePct / 100);
+            const newBase = base + raiseAmt;
+            const otRate = (newBase / 30 / 8) * 2; // Double rate
+            const otPay = otHrs * otRate;
+            
+            const total = newBase + otPay;
+            
+            vOt.textContent = otHrs;
+            vRaise.textContent = raisePct;
+            vProj.textContent = 'PKR ' + formatNumber(Math.round(total));
+        };
+
+        [sSalary, iSalary, sOt, sRaise].forEach(s => s?.addEventListener('input', calculateSimulation));
+        calculateSimulation();
+    };
+
     // Final Boot
     updateDashboard();
     renderTable();
+    initSimulator();
 });

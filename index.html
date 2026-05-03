@@ -131,6 +131,39 @@
                 </div>
             </section>
 
+            <!-- What-If Playground Section -->
+            <section id="what-if-playground" class="simulator-section card dashboard-view-component" style="margin-top: 2rem; padding: 2.5rem; border: 1px solid var(--accent-primary);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.5rem; background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🎢 What-If Playground</h2>
+                        <p style="margin: 0.5rem 0 0; color: var(--text-secondary); font-size: 0.9rem;">Simulate your future earnings by moving the sliders!</p>
+                    </div>
+                    <div id="sim-result-badge" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); padding: 1rem 2rem; border-radius: 12px; border: 1px solid var(--accent-primary); text-align: center; min-width: 200px; box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);">
+                        <span style="display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;">Projected Net Pay</span>
+                        <strong id="sim-projected-pay" style="font-size: 1.5rem;">PKR 0</strong>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
+                    <div class="sim-control">
+                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">
+                            Base Salary: 
+                            <input type="number" id="sim-input-salary" value="100000" min="40000" 
+                                style="background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-primary); border-radius: 6px; padding: 2px 8px; width: 100px; font-weight: bold; outline: none; transition: var(--transition);">
+                        </label>
+                        <input type="range" id="sim-slider-salary" min="40000" max="1000000" step="1000" value="100000" class="aura-slider">
+                    </div>
+                    <div class="sim-control">
+                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">OT Hours: <strong id="sim-val-ot" style="color: var(--text-primary);">0</strong></label>
+                        <input type="range" id="sim-slider-ot" min="0" max="100" step="1" value="0" class="aura-slider">
+                    </div>
+                    <div class="sim-control">
+                        <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">Expected Raise: <strong id="sim-val-raise" style="color: var(--text-primary);">0</strong>%</label>
+                        <input type="range" id="sim-slider-raise" min="0" max="50" step="1" value="0" class="aura-slider">
+                    </div>
+                </div>
+            </section>
+
             <!-- Data Table Section (Hidden by Default) -->
             <section id="data-view" class="d-none">
                 <div class="data-tabs">

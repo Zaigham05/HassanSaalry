@@ -315,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const initCloud = () => {
         const syncStatus = document.getElementById('sync-status-badge') || document.createElement('div');
         syncStatus.id = 'sync-status-badge';
-        syncStatus.style.cssText = 'position:fixed; bottom:1rem; right:1rem; font-size:0.7rem; color:var(--text-secondary); background:var(--input-bg); padding:0.5rem 1rem; border-radius:20px; border:1px solid var(--card-border); z-index:30000;';
+        syncStatus.style.cssText = 'position:fixed; bottom:1rem; right:1rem; font-size:0.7rem; color:var(--text-secondary); background:var(--input-bg); padding:0.5rem 1rem; border-radius:20px; border: 1px solid #10b981; box-shadow: 0 10px 20px rgba(0,0,0,0.4); z-index:30000;';
         syncStatus.innerHTML = '● Local Mode';
         if (!document.getElementById('sync-status-badge')) document.body.appendChild(syncStatus);
 
@@ -696,6 +696,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 plugins: { legend: { position: 'bottom', labels: { color: textColor } } }
             }
         });
+
+        renderHeatmap();
+    };
+
+    const renderHeatmap = () => {
+        const container = document.getElementById('salary-heatmap-container');
+        if (!container) return;
+        
+        const records = getRecords();
+        const funds = getFunds();
+        const dataMap = {};
+        let maxPay = 0;
+        
+        records.forEach(r => {
+            const pay = parseNumber(r.netPayable);
+            dataMap[r.month] = (dataMap[r.month] || 0) + pay;
+        });
+        
+        funds.forEach(f => {
+            const amt = parseNumber(f.amount);
+            dataMap[f.month] = (dataMap[f.month] || 0) + amt;
+        });
+
+        Object.values(dataMap).forEach(v => { if (v > maxPay) maxPay = v; });
+
+        const years = [...new Set([...records, ...funds].map(x => x.month?.split('-')[0]))].sort((a,b) => b-a);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        let html = '<div class="heatmap-grid"><div></div>';
+        months.forEach(m => html += `<div class="heatmap-month-label">${m}</div>`);
+
+        years.forEach(year => {
+            html += `<div class="heatmap-year-label">${year}</div>`;
+            for (let m = 1; m <= 12; m++) {
+                const mKey = `${year}-${m.toString().padStart(2, '0')}`;
+                const val = dataMap[mKey] || 0;
+                const intensity = maxPay > 0 ? (val / maxPay) : 0;
+                
+                const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+                let color = isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.05)';
+                
+                if (val > 0) {
+                    color = `rgba(16, 185, 129, ${Math.max(0.2, intensity)})`;
+                }
+
+                const tooltip = val > 0 ? `${months[m-1]} ${year} | Net Pay: PKR ${formatNumber(val)}` : 'No Data';
+                html += `<div class="heatmap-cell" style="background: ${color}" data-tooltip="${tooltip}"></div>`;
+            }
+        });
+        html += '</div>';
+        container.innerHTML = html;
     };
 
     const downloadPDF = (month) => {

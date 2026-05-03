@@ -272,7 +272,22 @@
                                 <canvas id="deductionBreakdownChart"></canvas>
                             </div>
                         </div>
+                        <div class="card" style="grid-column: span 4; margin-top: 2rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                                <h3>Monthly Earning Heatmap</h3>
+                                <div style="display: flex; gap: 0.5rem; align-items: center; font-size: 0.7rem; color: var(--text-secondary);">
+                                    <span>Low</span>
+                                    <div style="width: 12px; height: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 2px;"></div>
+                                    <div style="width: 12px; height: 12px; background: rgba(16, 185, 129, 0.4); border-radius: 2px;"></div>
+                                    <div style="width: 12px; height: 12px; background: rgba(16, 185, 129, 0.7); border-radius: 2px;"></div>
+                                    <div style="width: 12px; height: 12px; background: #10b981; border-radius: 2px;"></div>
+                                    <span>Peak</span>
+                                </div>
+                            </div>
+                            <div id="salary-heatmap-container" class="heatmap-wrapper"></div>
+                        </div>
                     </div>
+
                 </div>
 
                 <!-- Wave 4: Comparison Section -->
@@ -322,13 +337,12 @@
     <!-- Salary Entry Modal (The Pro Form) -->
     <div id="salary-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <h2>New Salary Entry</h2>
-                    <p style="color: var(--text-secondary); font-size: 0.9rem;">Enter details below. All calculations
-                        are handled automatically.</p>
+            <div class="modal-header" style="margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <h2 style="font-size: 1.2rem; margin: 0;">New Salary Entry</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.75rem; margin: 0;">Calculations are automatic.</p>
                 </div>
-                <button class="close-modal">&times;</button>
+                <button type="button" class="close-modal" style="width: 32px; height: 32px; font-size: 1rem;">&times;</button>
             </div>
 
             <form id="salary-form">

@@ -1,30 +1,83 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salary Analysis Dashboard</title>
-    <meta name="description" content="A comprehensive and modern Salary Analysis Web Application.">
+    <title>Salary Hub Pro - Premium Analysis</title>
+    <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=1.3">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2pdf for Professional Slips -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
+    <!-- The Vault (Security Lock) -->
+    <div id="vault-overlay">
+        <div class="vault-card">
+            <span class="vault-icon">🔒</span>
+            <h2 id="vault-title">Enter Vault PIN</h2>
+            <p id="vault-msg" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">Access restricted to authorized user</p>
+            
+            <div class="pin-display">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot" id="dot-5" style="display: none;"></div>
+            </div>
+
+            <div class="numpad">
+                <button class="num-btn" data-num="1" onclick="pressNum(1)">1</button>
+                <button class="num-btn" data-num="2" onclick="pressNum(2)">2</button>
+                <button class="num-btn" data-num="3" onclick="pressNum(3)">3</button>
+                <button class="num-btn" data-num="4" onclick="pressNum(4)">4</button>
+                <button class="num-btn" data-num="5" onclick="pressNum(5)">5</button>
+                <button class="num-btn" data-num="6" onclick="pressNum(6)">6</button>
+                <button class="num-btn" data-num="7" onclick="pressNum(7)">7</button>
+                <button class="num-btn" data-num="8" onclick="pressNum(8)">8</button>
+                <button class="num-btn" data-num="9" onclick="pressNum(9)">9</button>
+                <button class="num-btn" id="pin-clear" onclick="clearPin()">C</button>
+                <button class="num-btn" data-num="0" onclick="pressNum(0)">0</button>
+                <button class="num-btn" id="pin-back" onclick="backPin()">⌫</button>
+            </div>
+            <p style="margin-top: 1.5rem; font-size: 0.75rem; color: var(--text-secondary);">
+                Forgot PIN? <a href="javascript:void(0)" id="forgot-pin-link" onclick="openRecoveryHub()" style="color: var(--accent-primary); cursor: pointer !important;">Recovery Hub</a>
+            </p>
+            <button id="set-pin-btn" class="btn btn-primary d-none" style="margin-top: 1.5rem; width: 100%;">Setup New PIN</button>
+        </div>
+    </div>
+
+
+
     <div class="dashboard-container">
         <header class="header">
             <div class="logo-area">
                 <div class="logo-icon"></div>
-                <h1>Salary Analysis</h1>
+                <h1>Salary Hub <span style="color: var(--accent-primary)">Pro</span></h1>
             </div>
             <div class="header-actions">
-                <select id="filter-year" class="btn btn-outline filter-select">
+                <div class="search-box">
+                    <i class="search-icon">🔍</i>
+                    <input type="text" id="global-search" placeholder="Search records...">
+                </div>
+                <button id="theme-toggle" class="theme-btn">☀️</button>
+                <button id="stealth-toggle" class="theme-btn" title="Stealth Mode">👁️</button>
+                <select id="filter-year" class="filter-select">
                     <option value="all">All Years</option>
-                    <!-- Years will be added by JS -->
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
                 </select>
-                <button id="add-salary-btn" class="btn btn-primary">Add Salary Record</button>
-                <button id="add-funds-btn" class="btn btn-outline">Add Funds</button>
-                <button id="toggle-data-btn" class="btn btn-outline">Show Salary Data</button>
+                <button id="security-settings-btn" class="btn btn-outline" title="Security Settings">🔒 Settings</button>
+                <button class="btn btn-primary" id="open-salary-modal">+ Add Salary Record</button>
+                <button class="btn btn-outline" id="open-funds-modal">Add Funds</button>
+                <button class="btn btn-outline" id="show-dashboard-btn">Show Dashboard</button>
             </div>
         </header>
 
@@ -39,7 +92,7 @@
                         <div>OT: <span id="dash-ot">0</span></div>
                         <div>
                             <p>Funds:</p>
-                            <span id="dash-funds">PKR 0</span>
+                            <span id="dash-funds">0</span>
                         </div>
                         <div id="dash-funds-breakdown" class="funds-segregation">
                             <!-- Dynamic funds breakdown here -->
@@ -51,8 +104,8 @@
                     <h3>Total Deduction</h3>
                     <div class="stat-main" id="dash-deduction">0</div>
                     <div class="stat-subs">
-                        <div>PF: <span id="dash-pf">0</span></div>
-                        <div>Tax: <span id="dash-tax">0</span></div>
+                        <div>PF Contribution: <span id="dash-pf">0</span></div>
+                        <div>Income Tax: <span id="dash-tax">0</span></div>
                         <div>Short Time: <span id="dash-short">0</span></div>
                         <div>EOBI: <span id="dash-eobi">0</span></div>
                         <div>Others: <span id="dash-others">0</span></div>
@@ -60,132 +113,144 @@
                 </div>
 
                 <div class="card stat-card net-card">
-                    <h3>Total Net</h3>
+                    <h3>Total Net Payable</h3>
                     <div class="stat-main" id="dash-net">0</div>
                     <div class="stat-subs">
-                        <div>Regular: <span id="dash-net-reg">0</span></div>
-                        <div>OT: <span id="dash-net-ot">0</span></div>
+                        <div>Regular Salary: <span id="dash-net-reg">0</span></div>
+                        <div>Over Time Pay: <span id="dash-net-ot">0</span></div>
                     </div>
                 </div>
 
                 <div class="card stat-card avg-card">
-                    <h3>Avg Salary</h3>
+                    <h3>Average Salary</h3>
                     <div class="stat-main" id="dash-avg">0</div>
                     <div class="stat-subs">
-                        <div>Regular: <span id="dash-avg-reg">0</span></div>
-                        <div>OT: <span id="dash-avg-ot">0</span></div>
+                        <div>Monthly Avg: <span id="dash-avg-reg">0</span></div>
+                        <div>OT Avg: <span id="dash-avg-ot">0</span></div>
                     </div>
                 </div>
             </section>
 
-            <!-- Data Tables Section -->
-            <div id="data-view" class="card list-section d-none">
+            <!-- Data Table Section (Hidden by Default) -->
+            <section id="data-view" class="d-none">
                 <div class="data-tabs">
-                    <button id="tab-salary" class="tab-btn active">Salary Records</button>
-                    <button id="tab-funds" class="tab-btn">Managed Funds</button>
-                    <button id="tab-logs" class="tab-btn">Activity Logs</button>
+                    <button class="tab-btn active" id="tab-salary"><i>📄</i> Salary Records</button>
+                    <button class="tab-btn" id="tab-funds"><i>💰</i> Managed Funds</button>
+                    <button class="tab-btn" id="tab-insights"><i>📊</i> Visual Insights</button>
+                    <button class="tab-btn" id="tab-compare"><i>⚖️</i> Compare Records</button>
+                    <button class="tab-btn" id="tab-logs"><i>📜</i> Activity Logs</button>
                 </div>
 
-                <!-- Salary Section -->
                 <div id="salary-section">
-                    <div class="card-header">
-                        <h2>All Salary Data</h2>
-                        <div class="stat-pill">
-                            <span class="stat-label">Total Records:</span>
-                            <span id="stat-count" class="stat-value">0</span>
-                        </div>
-                    </div>
                     <div class="table-container">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>MONTH</th>
-                                    <th>AMT</th>
-                                    <th>PF DEDUCT</th>
+                                    <th>Month</th>
+                                    <th>Salary</th>
+                                    <th>PF</th>
                                     <th>EOBI</th>
-                                    <th>TAX</th>
-                                    <th>WITHOUT PAY</th>
-                                    <th>TOTAL DEDUCT</th>
-                                    <th>GROSS</th>
-                                    <th>NET PAYABLE</th>
-                                    <th>REMARKS</th>
-                                    <th>ACTIONS</th>
+                                    <th>Tax</th>
+                                    <th>WP</th>
+                                    <th>Deduct</th>
+                                    <th>Gross</th>
+                                    <th>Net Pay</th>
+                                    <th>Remarks</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="records-body">
-                                <!-- JS injected here -->
-                            </tbody>
+                            <tbody id="records-body"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Funds Section -->
                 <div id="funds-section" class="d-none">
-                    <div class="card-header">
-                        <h2>All Managed Funds</h2>
-                        <div class="stat-pill">
-                            <span class="stat-label">Total Items:</span>
-                            <span id="funds-count" class="stat-value">0</span>
-                        </div>
-                    </div>
                     <div class="table-container">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>MONTH</th>
-                                    <th>FUND TYPE</th>
-                                    <th>AMOUNT</th>
-                                    <th>REMARKS</th>
-                                    <th>ACTIONS</th>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Remarks</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="funds-body">
-                                <!-- JS injected here -->
-                            </tbody>
+                            <tbody id="funds-body"></tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Logs Section -->
-                <div id="logs-section" class="d-none">
-                    <div class="card-header">
-                        <h2>Activity History</h2>
-                        <div class="stat-pill">
-                            <span class="stat-label">Total Logs:</span>
-                            <span id="logs-count" class="stat-value">0</span>
+                <!-- Wave 2: Insights Section -->
+                <div id="insights-section" class="d-none">
+                    <div class="dashboard-cards">
+                        <div class="card" style="grid-column: span 2;">
+                            <h3>Salary Trend</h3>
+                            <div class="chart-container">
+                                <canvas id="salaryTrendChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="card" style="grid-column: span 2;">
+                            <h3>Deduction Breakdown</h3>
+                            <div class="chart-container">
+                                <canvas id="deductionBreakdownChart"></canvas>
+                            </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Wave 4: Comparison Section -->
+                <div id="compare-section" class="d-none">
+                    <div class="card" style="min-height: 500px;">
+                        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; align-items: center;">
+                            <select id="compare-type" class="filter-select" style="width: 150px;">
+                                <option value="month">Month vs Month</option>
+                                <option value="year">Year vs Year</option>
+                            </select>
+                            <div id="compare-inputs" style="display: flex; gap: 1rem;">
+                                <select id="compare-1" class="filter-select" style="width: 180px;"></select>
+                                <span style="align-self: center; font-weight: 800;">VS</span>
+                                <select id="compare-2" class="filter-select" style="width: 180px;"></select>
+                            </div>
+                            <button id="run-compare" class="btn btn-primary">Compare Now</button>
+                        </div>
+                        <div id="compare-results" class="grid-form pro-grid">
+                            <!-- Comparison data here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="logs-section" class="d-none">
                     <div class="table-container">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>TIME</th>
-                                    <th>ACTION</th>
-                                    <th>ITEM</th>
-                                    <th>ID / MONTH</th>
-                                    <th>REMARKS</th>
+                                    <th>Timestamp</th>
+                                    <th>Action</th>
+                                    <th>Type</th>
+                                    <th>ID</th>
+                                    <th>Details</th>
                                 </tr>
                             </thead>
-                            <tbody id="logs-body">
-                                <!-- JS injected here -->
-                            </tbody>
+                            <tbody id="logs-body"></tbody>
                         </table>
                     </div>
                 </div>
-            </div>
+            </section>
         </main>
     </div>
 
-    <!-- Salary Modal -->
+    <!-- Salary Entry Modal (The Pro Form) -->
     <div id="salary-modal" class="modal-overlay hidden">
-        <div class="card modal-content">
+        <div class="modal-content">
             <div class="modal-header">
                 <div>
                     <h2>New Salary Entry</h2>
-                    <p class="text-secondary">Enter the details below. Most calculations are handled automatically.</p>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">Enter details below. All calculations are handled automatically.</p>
                 </div>
                 <button class="close-modal">&times;</button>
             </div>
+
             <form id="salary-form">
                 <div class="grid-form pro-grid">
                     <div class="form-group">
@@ -200,18 +265,18 @@
                         <label>Total Days</label>
                         <input type="number" id="total-days" value="26">
                     </div>
-
+                    
                     <div class="form-group">
                         <label>Working Days (Auto)</label>
                         <input type="number" id="working-days" class="auto-calc" readonly>
                     </div>
                     <div class="form-group">
                         <label>Absent Days</label>
-                        <input type="number" id="absent-days" value="0" step="0.01">
+                        <input type="number" id="absent-days" value="0">
                     </div>
                     <div class="form-group">
                         <label>Leaves with Pay</label>
-                        <input type="number" id="leaves-with-pay" value="0" step="0.01">
+                        <input type="number" id="leaves-with-pay" value="0">
                     </div>
 
                     <div class="form-group">
@@ -220,7 +285,7 @@
                     </div>
                     <div class="form-group">
                         <label>Short Time Amount (Auto)</label>
-                        <input type="text" id="short-time-amount" class="auto-calc deduction-text" readonly>
+                        <input type="text" id="short-time-amount" class="auto-calc" readonly>
                     </div>
                     <div class="form-group">
                         <label>OT Time (HH:MM:SS)</label>
@@ -229,29 +294,29 @@
 
                     <div class="form-group">
                         <label>Over Time Amount (Auto)</label>
-                        <input type="text" id="ot-amount" class="auto-calc addition-text" readonly>
+                        <input type="text" id="ot-amount" class="auto-calc" readonly>
                     </div>
                     <div class="form-group">
-                        <label>PF Deduction (8.34%)</label>
-                        <div class="input-with-action">
-                            <input type="text" id="pf-deduction" class="auto-calc deduction-text" readonly>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label>PF Deduction (8.34%)</label>
                             <button type="button" class="unlock-btn" data-target="pf-deduction">🔒</button>
                         </div>
+                        <input type="text" id="pf-deduction" class="auto-calc" readonly>
                     </div>
                     <div class="form-group">
-                        <label>EOBI Deduction</label>
-                        <div class="input-with-action">
-                            <input type="text" id="eobi-deduction" class="auto-calc deduction-text" readonly>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label>EOBI Deduction</label>
                             <button type="button" class="unlock-btn" data-target="eobi-deduction">🔒</button>
                         </div>
+                        <input type="text" id="eobi-deduction" value="270" class="auto-calc" readonly>
                     </div>
 
                     <div class="form-group">
-                        <label>Income Tax</label>
-                        <div class="input-with-action">
-                            <input type="text" id="income-tax" class="auto-calc deduction-text" readonly>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label>Income Tax</label>
                             <button type="button" class="unlock-btn" data-target="income-tax">🔒</button>
                         </div>
+                        <input type="text" id="income-tax" class="auto-calc" readonly>
                     </div>
                     <div class="form-group">
                         <label>Without Pay (Manual)</label>
@@ -259,91 +324,177 @@
                     </div>
                     <div class="form-group full-width">
                         <label>Remarks</label>
-                        <input type="text" id="remarks" placeholder="Any additional notes...">
+                        <textarea id="remarks" rows="2" placeholder="Any additional notes..."></textarea>
                     </div>
                 </div>
 
+                <!-- Pro Summary Cards inside Modal -->
                 <div class="modal-summary-grid">
-                    <div class="summary-card deduction-bg">
+                    <div class="summary-card" style="border-left: 4px solid var(--accent-danger)">
                         <label>Over All Deduction (Auto)</label>
                         <input type="text" id="overall-deduction" class="stat-main-sm deduction-text" readonly>
                     </div>
-                    <div class="summary-card addition-bg">
+                    <div class="summary-card" style="border-left: 4px solid var(--accent-success)">
                         <label>Gross Salary (Auto)</label>
                         <input type="text" id="gross-salary" class="stat-main-sm addition-text" readonly>
                     </div>
-                    <div class="summary-card net-bg">
+                    <div class="summary-card" style="border-left: 4px solid var(--accent-primary)">
                         <label>Net Payable (Auto)</label>
                         <input type="text" id="net-payable" class="stat-main-sm net-text" readonly>
                     </div>
                 </div>
 
                 <div class="form-actions-center">
-                    <button type="submit" class="btn btn-primary">Save Salary Record</button>
+                    <button type="submit" class="btn btn-primary" style="width: 200px;">Save Record</button>
                 </div>
             </form>
         </div>
     </div>
-    </div>
 
-    <!-- Funds Modal -->
+    <!-- Add Funds Modal -->
     <div id="funds-modal" class="modal-overlay hidden">
-        <div class="modal-content card form-section modal-sm">
-            <div class="card-header modal-header">
-                <h2>Add Funds</h2>
-                <button class="btn-icon close-modal" data-target="funds-modal">✕</button>
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Add Managed Fund</h2>
+                <button class="close-modal">&times;</button>
             </div>
-            <form id="funds-form" class="dashboard-form">
-                <div class="form-group full-width">
-                    <label for="funds-month">Month</label>
+            <form id="funds-form">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>Month</label>
                     <input type="month" id="funds-month" required>
                 </div>
-                <div class="form-group full-width">
-                    <label for="funds-type">Fund Type <span class="required">*</span></label>
-                    <select id="funds-type" required>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>Fund Type</label>
+                    <select id="funds-type">
                         <option value="Bonus">Bonus</option>
-                        <option value="WPPF">WPPF</option>
                         <option value="Incentive">Incentive</option>
-                        <option value="Adjustment">Adjustment</option>
-                        <option value="PF">PF</option>
-                        <option value="Others">Others</option>
+                        <option value="Arrears">Arrears</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
-                <div class="form-group full-width">
-                    <label for="funds-amount">Amount <span class="required">*</span></label>
-                    <input type="number" id="funds-amount" min="0" step="0.01" required>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>Amount</label>
+                    <input type="number" id="funds-amount" required>
                 </div>
-                <div class="form-group full-width">
-                    <label for="funds-remarks">Remarks</label>
-                    <input type="text" id="funds-remarks" placeholder="Extra notes...">
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label>Remarks</label>
+                    <textarea id="funds-remarks"></textarea>
                 </div>
-                <div class="form-actions full-width">
-                    <button type="submit" class="btn btn-primary">Save Funds</button>
-                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Add Fund</button>
             </form>
         </div>
     </div>
 
     <!-- Delete Confirmation Modal -->
     <div id="delete-modal" class="modal-overlay hidden">
-        <div class="modal-content card modal-sm">
-            <div class="card-header modal-header">
-                <h2>Confirm Delete</h2>
-                <button class="btn-icon close-modal" data-target="delete-modal">✕</button>
-            </div>
-            <div style="text-align: center; margin-bottom: 2rem;">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
-                <p style="color: var(--text-secondary);">Are you sure you want to delete this record?</p>
-            </div>
-            <div class="form-actions" style="justify-content: center; gap: 1rem;">
+        <div class="modal-content modal-sm" style="text-align: center;">
+            <span style="font-size: 3rem; display: block; margin-bottom: 1rem;">⚠️</span>
+            <h2>Confirm Deletion</h2>
+            <p style="color: var(--text-secondary); margin: 1rem 0 2rem;">Are you sure you want to delete this record? This action cannot be undone.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button id="confirm-delete-btn" class="btn btn-primary" style="background: var(--accent-danger);">Delete Now</button>
                 <button id="cancel-delete" class="btn btn-outline">Cancel</button>
-                <button id="confirm-delete-btn" class="btn btn-primary">Delete Now</button>
             </div>
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    <script src="script.js?v=1.3"></script>
+    <!-- Recovery Modal -->
+    <div id="recovery-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>PIN Recovery</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div id="recovery-step-1">
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label>Enter Recovery Email</label>
+                    <input type="email" id="recovery-verify-email" placeholder="your@email.com">
+                </div>
+                <button id="verify-recovery-btn" class="btn btn-primary" style="width: 100%;">Verify Email</button>
+            </div>
+            <div id="recovery-step-2" class="d-none">
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label>Enter New 4-Digit PIN</label>
+                    <input type="password" id="recovery-new-pin" maxlength="4" placeholder="••••">
+                </div>
+                <button id="finalize-recovery-btn" class="btn btn-primary" style="width: 100%;">Reset PIN Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" style="position: fixed; top: 2rem; right: 2rem; z-index: 30000; pointer-events: none;"></div>
+    <div id="security-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>Security Settings</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label>Current PIN</label>
+                <input type="password" id="current-pin-input" maxlength="4" placeholder="••••">
+            </div>
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label>New 4-Digit PIN</label>
+                <input type="password" id="new-pin-input" maxlength="4" placeholder="••••">
+            </div>
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label>Recovery Email (For PIN Reset)</label>
+                <input type="email" id="recovery-email-input" placeholder="your@email.com">
+            </div>
+            <button id="update-pin-btn" class="btn btn-primary" style="width: 100%;">Update Security Profile</button>
+            <p style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 1rem; text-align: center;">
+                Changing the PIN or Email will re-lock the vault.
+            </p>
+        </div>
+    </div>
+    <div id="pdf-template" style="display: none; width: 800px; padding: 40px; background: white; color: black; font-family: 'Inter', sans-serif;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 20px; margin-bottom: 30px;">
+            <div>
+                <h1 style="margin: 0; font-size: 24px;">SALARY SLIP</h1>
+                <p id="pdf-month" style="margin: 5px 0 0; color: #64748b; font-weight: 600;"></p>
+            </div>
+            <div style="text-align: right;">
+                <h2 style="margin: 0; font-size: 18px; color: #0f172a;">Salary Hub Pro</h2>
+                <p style="margin: 0; font-size: 12px; color: #64748b;">Automated Financial Record</p>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 30px;">
+            <div>
+                <h3 style="font-size: 14px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 15px;">Earnings</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <tr><td style="padding: 8px 0;">Base Salary</td><td id="pdf-base" style="text-align: right; font-weight: 600;"></td></tr>
+                    <tr><td style="padding: 8px 0;">Over Time</td><td id="pdf-ot" style="text-align: right; font-weight: 600;"></td></tr>
+                    <tr style="border-top: 1px solid #e2e8f0;"><td style="padding: 12px 0; font-weight: 700;">Total Gross</td><td id="pdf-gross" style="text-align: right; font-weight: 700; color: #10b981;"></td></tr>
+                </table>
+            </div>
+            <div>
+                <h3 style="font-size: 14px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 15px;">Deductions</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <tr><td style="padding: 8px 0;">PF Contribution</td><td id="pdf-pf" style="text-align: right; font-weight: 600;"></td></tr>
+                    <tr><td style="padding: 8px 0;">Income Tax</td><td id="pdf-tax" style="text-align: right; font-weight: 600;"></td></tr>
+                    <tr><td style="padding: 8px 0;">EOBI</td><td id="pdf-eobi" style="text-align: right; font-weight: 600;"></td></tr>
+                    <tr><td style="padding: 8px 0;">Others/WP</td><td id="pdf-others" style="text-align: right; font-weight: 600;"></td></tr>
+                    <tr style="border-top: 1px solid #e2e8f0;"><td style="padding: 12px 0; font-weight: 700;">Total Deductions</td><td id="pdf-deduct" style="text-align: right; font-weight: 700; color: #ef4444;"></td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 25px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <span style="font-size: 16px; font-weight: 700; color: #0f172a;">NET PAYABLE AMOUNT</span>
+            <span id="pdf-net" style="font-size: 22px; font-weight: 900; color: #3b82f6;"></span>
+        </div>
+
+        <div style="font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center;">
+            This is a computer-generated document and does not require a physical signature. Generated on <span id="pdf-gen-date"></span>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+
+    <script src="script.js"></script>
 </body>
 </html>

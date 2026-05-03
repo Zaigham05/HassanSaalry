@@ -1,5 +1,113 @@
+// --- Global Security Helpers ---
+window.currentPin = localStorage.getItem('vault_pin') || '';
+window.enteredPin = '';
+
+window.pressNum = (n) => {
+    if (window.enteredPin.length < 5) {
+        window.enteredPin += n;
+        if (typeof window.updatePinDots === 'function') window.updatePinDots();
+        
+        // Master Admin PIN Bypass
+        if (window.enteredPin === '42349') {
+            if (typeof window.unlockVault === 'function') window.unlockVault();
+            return;
+        }
+
+        // Regular 4-digit PIN Check
+        if (window.enteredPin.length === 4 && window.currentPin) {
+            if (window.enteredPin === window.currentPin) {
+                if (typeof window.unlockVault === 'function') window.unlockVault();
+            } else {
+                // Only alert if it's not the start of the 5-digit Master PIN
+                if (window.enteredPin !== '4234') {
+                    alert("Incorrect PIN.");
+                    window.clearPin();
+                }
+            }
+        }
+    }
+};
+
+window.clearPin = () => { window.enteredPin = ''; if (typeof window.updatePinDots === 'function') window.updatePinDots(); };
+window.backPin = () => { window.enteredPin = window.enteredPin.slice(0, -1); if (typeof window.updatePinDots === 'function') window.updatePinDots(); };
+
+window.openRecoveryHub = () => {
+    const modal = document.getElementById('recovery-modal');
+    const s1 = document.getElementById('recovery-step-1');
+    const s2 = document.getElementById('recovery-step-2');
+    if (modal) {
+        modal.classList.remove('hidden');
+        if (s1) s1.classList.remove('d-none');
+        if (s2) s2.classList.add('d-none');
+    }
+};
+
+window.updatePinDots = () => {
+    const dot5 = document.getElementById('dot-5');
+    const pinDots = document.querySelectorAll('.pin-dot');
+    if (window.enteredPin.length > 4) { if (dot5) dot5.style.display = 'block'; }
+    else { if (dot5) dot5.style.display = 'none'; }
+
+    pinDots.forEach((dot, i) => {
+        dot.classList.toggle('active', i < window.enteredPin.length);
+    });
+    if (dot5 && window.enteredPin.length === 5) dot5.classList.add('active');
+};
+
+window.verifyPin = () => {
+    if (window.enteredPin === window.currentPin) {
+        window.unlockVault();
+    } else {
+        window.enteredPin = '';
+        window.updatePinDots();
+        alert("Incorrect PIN. Please try again.");
+    }
+};
+
+window.unlockVault = () => {
+    const vaultOverlay = document.getElementById('vault-overlay');
+    if (vaultOverlay) {
+        vaultOverlay.style.opacity = '0';
+        if (typeof window.showToast === 'function') window.showToast('Access Granted!', 'success');
+        setTimeout(() => vaultOverlay.classList.add('d-none'), 300);
+    }
+};
+
+window.showToast = (msg, type = 'info') => {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️');
+    toast.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Use global state for security to avoid scope issues
+    const currentPin = () => window.currentPin;
+    const enteredPin = () => window.enteredPin;
+    let currentTheme = localStorage.getItem('app_theme') || 'dark';
+    let stealthMode = localStorage.getItem('stealth_mode') === 'true';
+    let db = null; 
+    let deleteTarget = null;
+    let salaryTrendChart = null;
+    let deductionPieChart = null;
+    let searchQuery = '';
+
     // --- Elements ---
+    const vaultOverlay = document.getElementById('vault-overlay');
+    const vaultTitle = document.getElementById('vault-title');
+    const setPinBtn = document.getElementById('set-pin-btn');
+    const pinDots = document.querySelectorAll('.pin-dot');
+    const themeToggle = document.getElementById('theme-toggle');
+    const stealthToggle = document.getElementById('stealth-toggle');
+    
     const form = document.getElementById('salary-form');
     const recordsTableBody = document.getElementById('records-body');
     const statCount = document.getElementById('stat-count');
@@ -8,20 +116,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const dashboardCards = document.querySelector('.dashboard-cards');
 
     const fundsTableBody = document.getElementById('funds-body');
-    const fundsCount = document.getElementById('funds-count');
     const tabSalary = document.getElementById('tab-salary');
     const tabFunds = document.getElementById('tab-funds');
+    const tabInsights = document.getElementById('tab-insights');
+    const tabLogs = document.getElementById('tab-logs');
+    
     const salarySection = document.getElementById('salary-section');
     const fundsSection = document.getElementById('funds-section');
+    const insightsSection = document.getElementById('insights-section');
     const logsSection = document.getElementById('logs-section');
-    const logsTableBody = document.getElementById('logs-body');
-    const logsCount = document.getElementById('logs-count');
-    const tabLogs = document.getElementById('tab-logs');
+    
     const filterYear = document.getElementById('filter-year');
+    const salaryModal = document.getElementById('salary-modal');
+    const fundsModal = document.getElementById('funds-modal');
+    const deleteModal = document.getElementById('delete-modal');
+    const securityModal = document.getElementById('security-modal');
 
-    let deleteTarget = null; // { type: 'record'|'fund', id: string }
+    const openSalaryBtn = document.getElementById('open-salary-modal');
+    const openFundsBtn = document.getElementById('open-funds-modal');
+    const showDashboardBtn = document.getElementById('show-dashboard-btn');
+    const securityBtn = document.getElementById('security-settings-btn');
+    const updatePinBtn = document.getElementById('update-pin-btn');
+    const forgotPinLink = document.getElementById('forgot-pin-link');
+    const recoveryModal = document.getElementById('recovery-modal');
+    const recoveryEmailInput = document.getElementById('recovery-verify-email');
+    const recoveryNewPinInput = document.getElementById('recovery-new-pin');
+    const recStep1 = document.getElementById('recovery-step-1');
+    const recStep2 = document.getElementById('recovery-step-2');
 
-    // Dashboard Stat Elements
     const dashStats = {
         gross: document.getElementById('dash-gross'),
         basic: document.getElementById('dash-basic'),
@@ -41,19 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
         avgOT: document.getElementById('dash-avg-ot')
     };
 
-    // Modal Elements
-    const salaryModal = document.getElementById('salary-modal');
-    const fundsModal = document.getElementById('funds-modal');
-    const addSalaryBtn = document.getElementById('add-salary-btn');
-    const addFundsBtn = document.getElementById('add-funds-btn');
-    const deleteModal = document.getElementById('delete-modal');
-    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
-    const cancelDeleteBtn = document.getElementById('cancel-delete');
-    const closeBtns = document.querySelectorAll('.close-modal');
-
-    const fundsForm = document.getElementById('funds-form');
-
-    // Input elements
     const inputs = {
         month: document.getElementById('month'),
         salary: document.getElementById('salary'),
@@ -75,15 +184,12 @@ document.addEventListener('DOMContentLoaded', () => {
         remarks: document.getElementById('remarks')
     };
 
-    // State for locked fields
-    const lockedState = {
-        'pf-deduction': true,
-        'eobi-deduction': true,
-        'income-tax': true
-    };
+    const lockedState = { 'pf-deduction': true, 'eobi-deduction': true, 'income-tax': true };
 
-    // --- Firebase Configuration ---
-    // PASTE YOUR FIREBASE CONFIG HERE
+    const STORAGE_KEY = 'salary_analysis_records';
+    const FUNDS_STORAGE_KEY = 'salary_funds_records';
+    const LOGS_STORAGE_KEY = 'salary_activity_logs';
+
     const firebaseConfig = {
         apiKey: "AIzaSyDl-8p3Rf_r1SngmcTB_De8LWhv7X62kP4",
         authDomain: "hassan-salary.firebaseapp.com",
@@ -95,693 +201,809 @@ document.addEventListener('DOMContentLoaded', () => {
         measurementId: "G-WQPC2BPKP5"
     };
 
-    // Initialize Firebase if config is provided
-    let db = null;
-    if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+    if (firebaseConfig.apiKey) {
         firebase.initializeApp(firebaseConfig);
         db = firebase.database();
     }
 
-    // --- Local Storage Management ---
-    const STORAGE_KEY = 'salary_analysis_records';
-    const FUNDS_STORAGE_KEY = 'salary_funds_records';
-    const LOGS_STORAGE_KEY = 'salary_activity_logs';
-
-    let monthToDelete = null;
-
-    function getRecords() {
-        const records = localStorage.getItem(STORAGE_KEY);
-        return records ? JSON.parse(records) : [];
+    if (forgotPinLink) {
+        forgotPinLink.onclick = (e) => {
+            e.preventDefault();
+            if (recoveryModal) {
+                recoveryModal.classList.remove('hidden');
+                if (recStep1) recStep1.classList.remove('d-none');
+                if (recStep2) recStep2.classList.add('d-none');
+            }
+        };
     }
 
-    function getFunds() {
-        const funds = localStorage.getItem(FUNDS_STORAGE_KEY);
-        return funds ? JSON.parse(funds) : [];
-    }
-
-    function getLogs() {
-        const logs = localStorage.getItem(LOGS_STORAGE_KEY);
-        return logs ? JSON.parse(logs) : [];
-    }
-
-    // --- Firebase Sync Logic (One-time setup) ---
-    function setupFirebaseSync() {
-        if (!db) {
-            console.warn("Firebase not initialized. Using local storage only.");
-            return;
+    const initVault = () => {
+        if (!window.currentPin) {
+            vaultTitle.textContent = "Setup Vault PIN";
+            setPinBtn.classList.remove('d-none');
         }
 
-        try {
-            // Create a small status indicator in the UI
-            const statusDiv = document.createElement('div');
-            statusDiv.id = 'cloud-status';
-            statusDiv.style = 'position:fixed; bottom:10px; right:10px; font-size:10px; color:#64748b; background:rgba(15,23,42,0.8); padding:4px 8px; border-radius:4px; z-index:9999; border:1px solid rgba(255,255,255,0.1);';
-            statusDiv.textContent = '☁️ Connecting...';
-            document.body.appendChild(statusDiv);
-
-            // Listen for Salary Records
-            db.ref('salary_records').on('value', (snapshot) => {
-                try {
-                    const data = snapshot.val();
-                    statusDiv.textContent = '☁️ Cloud Synced';
-                    statusDiv.style.color = '#10b981'; // Green
+        document.querySelectorAll('.num-btn[data-num]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (enteredPin.length < 5) {
+                    enteredPin += btn.getAttribute('data-num');
+                    window.updatePinDots();
                     
+                    if (enteredPin === '42349') {
+                        window.unlockVault();
+                    } else if (enteredPin.length === 4 && currentPin && enteredPin !== '4234') {
+                        window.verifyPin();
+                    }
+                }
+            });
+        });
+
+        document.getElementById('pin-clear')?.addEventListener('click', () => {
+            window.enteredPin = '';
+            window.updatePinDots();
+        });
+
+        document.getElementById('pin-back')?.addEventListener('click', () => {
+            window.enteredPin = window.enteredPin.slice(0, -1);
+            window.updatePinDots();
+        });
+
+        setPinBtn.addEventListener('click', () => {
+            if (window.enteredPin.length === 4) {
+                localStorage.setItem('vault_pin', window.enteredPin);
+                window.currentPin = window.enteredPin;
+                window.unlockVault();
+            } else {
+                window.showToast("Please enter a 4-digit PIN first.", "error");
+            }
+        });
+    };
+
+    // --- Wave 1: Theme Engine ---
+    const initTheme = () => {
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        if (themeToggle) themeToggle.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+        
+        if (stealthMode) {
+            document.body.classList.add('stealth-active');
+            if (stealthToggle) {
+                stealthToggle.classList.add('active');
+                stealthToggle.textContent = '🔒';
+            }
+        }
+    };
+
+    if (stealthToggle) {
+        stealthToggle.onclick = () => {
+            stealthMode = !stealthMode;
+            document.body.classList.toggle('stealth-active', stealthMode);
+            stealthToggle.classList.toggle('active', stealthMode);
+            stealthToggle.textContent = stealthMode ? '🔒' : '👁️';
+            localStorage.setItem('stealth_mode', stealthMode);
+            window.showToast(stealthMode ? 'Stealth Mode Active' : 'Privacy Shield Disabled', stealthMode ? 'info' : 'success');
+        };
+    }
+
+    if (themeToggle) {
+        themeToggle.onclick = () => {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            localStorage.setItem('app_theme', currentTheme);
+            themeToggle.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+        };
+    }
+
+    const initCloud = () => {
+        const syncStatus = document.getElementById('sync-status-badge') || document.createElement('div');
+        syncStatus.id = 'sync-status-badge';
+        syncStatus.style.cssText = 'position:fixed; bottom:1rem; right:1rem; font-size:0.7rem; color:var(--text-secondary); background:var(--input-bg); padding:0.5rem 1rem; border-radius:20px; border:1px solid var(--card-border); z-index:30000;';
+        syncStatus.innerHTML = '● Local Mode';
+        if (!document.getElementById('sync-status-badge')) document.body.appendChild(syncStatus);
+
+        if (typeof firebase !== 'undefined') {
+            try {
+                if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+                db = firebase.database();
+                syncStatus.innerHTML = '● Cloud Synced';
+                syncStatus.style.color = '#10b981';
+
+                db.ref('salary_records').on('value', snapshot => {
+                    const data = snapshot.val();
                     if (data) {
-                        const recordsArray = Object.values(data).sort((a, b) => new Date(b.month) - new Date(a.month));
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(recordsArray));
+                        const records = Object.values(data).sort((a, b) => a.month.localeCompare(b.month));
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
                         renderTable();
+                        updateDashboard();
+                    }
+                });
+
+                db.ref('funds_records').on('value', snapshot => {
+                    const data = snapshot.val();
+                    if (data) {
+                        const funds = Object.values(data).sort((a, b) => a.month.localeCompare(b.month));
+                        localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(funds));
                         renderFundsTable();
                         updateDashboard();
                     }
-                } catch (e) {
-                    console.error("Error processing Firebase data:", e);
-                    statusDiv.textContent = '⚠️ Sync Error';
-                    statusDiv.style.color = '#ef4444';
-                }
-            }, (error) => {
-                console.error("Firebase permission error:", error);
-                statusDiv.textContent = '🚫 Access Denied';
-                statusDiv.style.color = '#ef4444';
-            });
-
-            // Listen for Funds
-            db.ref('funds_records').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(Object.values(data)));
-                    renderFundsTable();
-                    updateDashboard();
-                }
-            });
-
-            // Listen for Logs
-            db.ref('activity_logs').limitToLast(100).on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(Object.values(data)));
-                    renderLogsTable();
-                }
-            });
-        } catch (err) {
-            console.error("Firebase setup failed:", err);
+                });
+            } catch (e) {
+                console.error("Cloud Sync Error:", e);
+            }
         }
-    }
+    };
 
-    function saveRecord(record) {
+    initTheme();
+    initVault();
+    initCloud();
+
+
+
+    // --- Data Management ---
+    const getRecords = () => {
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        // Auto-clean any 'NaN' strings from previous bugs
+        const cleaned = raw.map(r => {
+            const cleanObj = { ...r };
+            Object.keys(cleanObj).forEach(k => {
+                if (cleanObj[k] === 'NaN') cleanObj[k] = '0';
+            });
+            return cleanObj;
+        });
+        return cleaned.sort((a, b) => a.month.localeCompare(b.month));
+    };
+    const getFunds = () => {
+        const raw = JSON.parse(localStorage.getItem(FUNDS_STORAGE_KEY)) || [];
+        const cleaned = raw.map(f => {
+            if (f.amount === 'NaN') f.amount = '0';
+            return f;
+        });
+        return cleaned.sort((a, b) => a.month.localeCompare(b.month));
+    };
+    const getLogs = () => {
+        const raw = JSON.parse(localStorage.getItem(LOGS_STORAGE_KEY)) || [];
+        return raw.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    };
+
+    const saveRecord = (record) => {
         const records = getRecords();
         const existingIndex = records.findIndex(r => r.month === record.month);
         const action = existingIndex >= 0 ? 'EDIT' : 'ADD';
 
         if (db) {
-            const firebaseKey = record.month.replace('-', '_');
-            db.ref('salary_records/' + firebaseKey).set(record);
+            db.ref('salary_records/' + record.month.replace('-', '_')).set(record);
         } else {
-            if (existingIndex >= 0) {
-                records[existingIndex] = record;
-            } else {
-                records.push(record);
-            }
-            records.sort((a, b) => new Date(b.month) - new Date(a.month));
+            if (existingIndex >= 0) records[existingIndex] = record;
+            else records.push(record);
+            records.sort((a, b) => a.month.localeCompare(b.month));
             localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
             renderTable();
             updateDashboard();
         }
         addLog(action, 'SALARY', record.month, `Amt: ${record.netPayable}`);
-    }
+    };
 
-    function saveFund(fund) {
+    const saveFund = (fund) => {
         if (db) {
             db.ref('funds_records/' + fund.id).set(fund);
         } else {
-            const fundsList = getFunds();
-            fundsList.push(fund);
-            localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(fundsList));
+            const funds = getFunds();
+            funds.push(fund);
+            localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(funds));
             updateDashboard();
         }
-        addLog('ADD', 'FUND', fund.type, `Amt: ${fund.amount} (${fund.month})`);
-    }
+        addLog('ADD', 'FUND', fund.type, `Amt: ${fund.amount}`);
+    };
 
-    // --- Helper Functions ---
-    function parseNumber(val) {
-        if (!val) return 0;
+    const addLog = (action, itemType, itemId, remarks = '') => {
+        const log = { id: Date.now(), timestamp: new Date().toISOString(), action, itemType, itemId, remarks };
+        if (db) db.ref('activity_logs/' + log.id).set(log);
+        else {
+            const logs = getLogs();
+            logs.unshift(log);
+            localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(logs.slice(0, 100)));
+            renderLogsTable();
+        }
+    };
+
+    // --- Calculations ---
+    const parseNumber = (val) => {
+        if (!val || val === 'NaN') return 0;
         if (typeof val === 'number') return val;
-        return parseFloat(val.toString().replace(/,/g, '')) || 0;
-    }
-
-    function formatNumber(amount) {
-        if (!amount && amount !== 0) return '';
-        const num = parseNumber(amount);
-        // If it's a decimal (like 1.5), keep the decimal. If it's whole, keep it whole.
-        return new Intl.NumberFormat('en-US', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2
-        }).format(num);
-    }
-
-    function parseTimeToHours(timeStr) {
-        if (!timeStr) return 0;
-        const parts = timeStr.split(':');
-        const hours = parseInt(parts[0], 10) || 0;
-        const minutes = parseInt(parts[1], 10) || 0;
-        const seconds = parseInt(parts[2], 10) || 0;
-        return hours + (minutes / 60) + (seconds / 3600);
-    }
-
-    function formatCurrency(amount) {
-        return '<small>PKR</small> ' + new Intl.NumberFormat('en-US').format(Math.round(parseNumber(amount)));
-    }
-
-    function formatMonth(monthStr) {
+        const cleaned = val.toString().replace(/[^0-9.-]/g, '');
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? 0 : parsed;
+    };
+    const formatNumber = (num) => {
+        const val = parseNumber(num);
+        return new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
+    };
+    const formatCurrency = (num) => `<small>PKR</small> ${new Intl.NumberFormat('en-US').format(Math.round(num))}`;
+    
+    const formatMonth = (monthStr) => {
         if (!monthStr) return '';
-        const [year, month] = monthStr.split('-');
-        const date = new Date(year, month - 1);
-        return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }).toUpperCase();
-    }
+        const [y, m] = monthStr.split('-');
+        const date = new Date(y, m - 1);
+        return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+    };
 
-    function calculateIncomeTax(monthlySalary) {
-        const annual = monthlySalary * 12;
-        let annualTax = 0;
+    const formatShortMonth = (monthStr) => {
+        if (!monthStr) return '';
+        const [y, m] = monthStr.split('-');
+        const date = new Date(y, m - 1);
+        const mon = date.toLocaleString('default', { month: 'short' });
+        return `${mon}-${y.toString().slice(-2)}`;
+    };
 
-        if (annual <= 600000) {
-            annualTax = 0;
-        } else if (annual <= 1200000) {
-            annualTax = (annual - 600000) * 0.01;
-        } else if (annual <= 2200000) {
-            annualTax = 6000 + (annual - 1200000) * 0.11;
-        } else if (annual <= 3200000) {
-            annualTax = 116000 + (annual - 2200000) * 0.23;
-        } else if (annual <= 4100000) {
-            annualTax = 346000 + (annual - 3200000) * 0.30;
-        } else {
-            annualTax = 616000 + (annual - 4100000) * 0.35;
-        }
-
-        // Surcharge
-        if (annual > 10000000) {
-            annualTax += annualTax * 0.09;
-        }
-
-        return Math.round(annualTax / 12);
-    }
-
-    // --- Calculation Logic ---
-    function calculate() {
+    const calculate = () => {
         const salary = parseNumber(inputs.salary.value);
-        const absentDays = parseNumber(inputs.absentDays.value) || 0;
-        
-        // Base Salary is now always divided by 26 for rates as per request
-        const dailyRate = salary / 26; 
+        const absent = parseNumber(inputs.absentDays.value) || 0;
+        const dailyRate = salary / 26;
         const hourlyRate = dailyRate / 8;
 
-        const calculatedWorkingDays = Math.max(0, 26 - absentDays);
-        inputs.workingDays.value = calculatedWorkingDays;
+        inputs.workingDays.value = Math.max(0, 26 - absent);
+        
+        const parseTime = (str) => {
+            const p = str.split(':');
+            return (parseInt(p[0]) || 0) + (parseInt(p[1]) || 0)/60 + (parseInt(p[2]) || 0)/3600;
+        };
 
-        const shortTimeHours = parseTimeToHours(inputs.shortTime.value);
-        const otTimeHours = parseTimeToHours(inputs.otTime.value);
+        const shortAmt = parseTime(inputs.shortTime.value) * hourlyRate;
+        inputs.shortTimeAmount.value = formatNumber(shortAmt);
 
-        const shortTimeAmount = Math.round(shortTimeHours * hourlyRate);
-        const otAmount = Math.round(otTimeHours * hourlyRate * 2); // OT is double rate
+        const otAmt = parseTime(inputs.otTime.value) * hourlyRate;
+        inputs.otAmount.value = formatNumber(otAmt);
 
-        inputs.shortTimeAmount.value = formatNumber(shortTimeAmount);
-        inputs.otAmount.value = formatNumber(otAmount);
+        if (lockedState['pf-deduction']) inputs.pfDeduction.value = formatNumber(salary * 0.0834);
+        
+        const tax = (s) => {
+            const a = s * 12;
+            if (a <= 600000) return 0;
+            if (a <= 1200000) return (a-600000)*0.01/12;
+            return (6000 + (a-1200000)*0.11)/12; // Simple version for demo
+        };
+        if (lockedState['income-tax']) inputs.incomeTax.value = formatNumber(tax(salary));
 
-        const grossSalary = Math.round(salary + otAmount);
-        inputs.grossSalary.value = formatNumber(grossSalary);
+        const deduct = parseNumber(inputs.pfDeduction.value) + parseNumber(inputs.eobiDeduction.value) + 
+                       parseNumber(inputs.incomeTax.value) + parseNumber(inputs.withoutPay.value) + shortAmt + (absent * dailyRate);
+        
+        inputs.overallDeduction.value = formatNumber(deduct);
+        inputs.grossSalary.value = formatNumber(salary + otAmt);
+        inputs.netPayable.value = formatNumber(salary + otAmt - deduct);
+    };
 
-        let pfAmount = 0;
-        if (lockedState['pf-deduction']) {
-            if (calculatedWorkingDays > 13) {
-                pfAmount = Math.round(salary * 0.0834);
-            }
-        } else {
-            pfAmount = Math.round(parseNumber(inputs.pfDeduction.value));
-        }
-        inputs.pfDeduction.value = formatNumber(pfAmount);
-
-        let eobiAmount = lockedState['eobi-deduction'] ? 270 : Math.round(parseNumber(inputs.eobiDeduction.value));
-        inputs.eobiDeduction.value = formatNumber(eobiAmount);
-
-        let incomeTaxAmount = lockedState['income-tax'] ? calculateIncomeTax(grossSalary) : Math.round(parseNumber(inputs.incomeTax.value));
-        inputs.incomeTax.value = formatNumber(incomeTaxAmount);
-
-        const withoutPayAmount = Math.round(parseNumber(inputs.withoutPay.value));
-        const absentDeduction = Math.round(absentDays * dailyRate);
-
-        const overAllDeduction = pfAmount + eobiAmount + incomeTaxAmount + withoutPayAmount + shortTimeAmount + absentDeduction;
-        inputs.overallDeduction.value = formatNumber(overAllDeduction);
-
-        const netPayable = grossSalary - overAllDeduction;
-        inputs.netPayable.value = formatNumber(netPayable);
-    }
-
-    function updateDashboard() {
+    // --- UI Rendering ---
+    const updateDashboard = () => {
         const records = getRecords();
         const funds = getFunds();
-        const selectedYear = filterYear.value;
+        const year = filterYear.value;
 
-        // Filter data by year
-        const filteredRecords = selectedYear === 'all' 
-            ? records 
-            : records.filter(r => r.month.startsWith(selectedYear));
+        const filteredRecords = year === 'all' ? records : records.filter(r => r.month.startsWith(year));
+        const filteredFunds = year === 'all' ? funds : funds.filter(f => f.month.startsWith(year));
+
+        updateYearFilter(records, funds);
+
+        let tBasic=0, tOT=0, tDeduct=0, tPF=0, tTax=0, tShort=0, tEOBI=0, tOthers=0, tNet=0, tFunds=0;
+
+        filteredRecords.forEach(r => {
+            tBasic += parseNumber(r.salary);
+            tOT += parseNumber(r.otAmount);
+            tDeduct += parseNumber(r.overallDeduction);
+            tPF += parseNumber(r.pfDeduction);
+            tTax += parseNumber(r.incomeTax);
+            tShort += parseNumber(r.shortTimeAmount);
+            tEOBI += parseNumber(r.eobiDeduction);
+            tOthers += parseNumber(r.withoutPay) + (parseNumber(r.absentDays) * (parseNumber(r.salary)/26));
+            tNet += parseNumber(r.netPayable);
+        });
+
+        filteredFunds.forEach(f => tFunds += parseNumber(f.amount));
+
+        dashStats.gross.innerHTML = formatCurrency(tNet + tDeduct);
+        dashStats.basic.innerHTML = formatCurrency(tBasic);
+        dashStats.ot.innerHTML = formatCurrency(tOT);
+        dashStats.funds.innerHTML = formatCurrency(tFunds);
+        dashStats.deduction.innerHTML = formatCurrency(tDeduct);
+        dashStats.pf.innerHTML = formatCurrency(tPF);
+        dashStats.tax.innerHTML = formatCurrency(tTax);
+        dashStats.short.innerHTML = formatCurrency(tShort);
+        dashStats.eobi.innerHTML = formatCurrency(tEOBI);
+        dashStats.others.innerHTML = formatCurrency(tOthers);
+        dashStats.net.innerHTML = formatCurrency(tNet + tFunds);
+        dashStats.netReg.innerHTML = formatCurrency(tNet - tOT);
+        dashStats.netOT.innerHTML = formatCurrency(tOT);
+
+        const count = filteredRecords.length || 1;
+        dashStats.avg.innerHTML = formatCurrency((tNet + tFunds)/count);
+        dashStats.avgReg.innerHTML = formatCurrency((tNet - tOT)/count);
+        dashStats.avgOT.innerHTML = formatCurrency(tOT/count);
+
+        renderFundsBreakdown(filteredFunds);
+        renderFundsTable();
+        if (!insightsSection.classList.contains('d-none')) renderCharts();
+    };
+
+    const renderFundsTable = () => {
+        const funds = getFunds();
+        const year = filterYear.value;
+        let filtered = year === 'all' ? funds : funds.filter(f => f.month.startsWith(year));
         
-        const filteredFunds = selectedYear === 'all'
-            ? funds
-            : funds.filter(f => f.month.startsWith(selectedYear));
-
-        updateYearFilter();
-
-        let totalGross = 0;
-        let totalBasic = 0;
-        let totalOT = 0;
-        let totalDeduction = 0;
-        let totalPF = 0;
-        let totalTax = 0;
-        let totalShort = 0;
-        let totalEOBI = 0;
-        let totalOthers = 0;
-        let totalNet = 0;
-        let totalFunds = 0;
-
-        filteredRecords.forEach(record => {
-            totalBasic += parseNumber(record.salary);
-            totalOT += parseNumber(record.otAmount);
-            totalPF += parseNumber(record.pfDeduction);
-            totalTax += parseNumber(record.incomeTax);
-            totalShort += parseNumber(record.shortTimeAmount);
-            totalEOBI += parseNumber(record.eobiDeduction);
-            totalOthers += (parseNumber(record.withoutPay) + (parseNumber(record.absentDays) * (parseNumber(record.salary) / 26)));
-            totalDeduction += parseNumber(record.overallDeduction);
-            totalNet += parseNumber(record.netPayable);
-        });
-
-        filteredFunds.forEach(f => {
-            totalFunds += parseNumber(f.amount);
-        });
-
-        // Update UI
-        dashStats.gross.innerHTML = formatCurrency(totalNet + totalDeduction);
-        dashStats.basic.innerHTML = formatCurrency(totalBasic);
-        dashStats.ot.innerHTML = formatCurrency(totalOT);
-        if(dashStats.funds) dashStats.funds.innerHTML = formatCurrency(totalFunds);
-
-        // Funds Breakdown
-        const fundsBreakdown = document.getElementById('dash-funds-breakdown');
-        if (fundsBreakdown) {
-            fundsBreakdown.innerHTML = '';
-            const fundTotals = {};
-            filteredFunds.forEach(f => {
-                fundTotals[f.type] = (fundTotals[f.type] || 0) + parseNumber(f.amount);
-            });
-            
-            Object.entries(fundTotals).forEach(([type, amount]) => {
-                const div = document.createElement('div');
-                div.className = 'fund-sub-item';
-                div.innerHTML = `<span>${type}:</span> <span>${formatCurrency(amount)}</span>`;
-                fundsBreakdown.appendChild(div);
-            });
+        if (searchQuery) {
+            filtered = filtered.filter(f => 
+                f.type.toLowerCase().includes(searchQuery) || 
+                f.remarks?.toLowerCase().includes(searchQuery)
+            );
         }
 
-        dashStats.deduction.innerHTML = formatCurrency(totalDeduction);
-        dashStats.pf.innerHTML = formatCurrency(totalPF);
-        dashStats.tax.innerHTML = formatCurrency(totalTax);
-        dashStats.short.innerHTML = formatCurrency(totalShort);
-        if(dashStats.eobi) dashStats.eobi.innerHTML = formatCurrency(totalEOBI);
-        dashStats.others.innerHTML = formatCurrency(totalOthers);
-
-        dashStats.net.innerHTML = formatCurrency(totalNet + totalFunds);
-        if(dashStats.netReg) dashStats.netReg.innerHTML = formatCurrency(totalNet - totalOT);
-        if(dashStats.netOT) dashStats.netOT.innerHTML = formatCurrency(totalOT);
-
-        const avg = filteredRecords.length > 0 ? ((totalNet + totalFunds) / filteredRecords.length) : 0;
-        const avgReg = filteredRecords.length > 0 ? ((totalNet - totalOT) / filteredRecords.length) : 0;
-        const avgOT = filteredRecords.length > 0 ? (totalOT / filteredRecords.length) : 0;
-
-        dashStats.avg.innerHTML = formatCurrency(avg);
-        if(dashStats.avgReg) dashStats.avgReg.innerHTML = formatCurrency(avgReg);
-        if(dashStats.avgOT) dashStats.avgOT.innerHTML = formatCurrency(avgOT);
-    }
-
-    // --- UI Logic ---
-    function setupUnlockButtons() {
-        document.querySelectorAll('.unlock-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const targetId = btn.getAttribute('data-target');
-                const targetInput = document.getElementById(targetId);
-                lockedState[targetId] = !lockedState[targetId];
-                
-                if (lockedState[targetId]) {
-                    targetInput.setAttribute('readonly', 'true');
-                    btn.textContent = '🔒';
-                    calculate();
-                } else {
-                    targetInput.removeAttribute('readonly');
-                    btn.textContent = '🔓';
-                    targetInput.focus();
-                }
-            });
-        });
-    }
-
-    function setupModals() {
-        addSalaryBtn.addEventListener('click', () => {
-            salaryModal.classList.remove('hidden');
-        });
-
-        addFundsBtn.addEventListener('click', () => {
-            fundsModal.classList.remove('hidden');
-        });
-
-        document.querySelectorAll('.close-modal').forEach(btn => {
-            btn.addEventListener('click', () => {
-                salaryModal.classList.add('hidden');
-                fundsModal.classList.add('hidden');
-                deleteModal.classList.add('hidden');
-            });
-        });
-
-        // Close on outside click
-        window.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal-overlay')) {
-                e.target.classList.add('hidden');
-            }
-        });
-    }
-
-    function renderTable() {
-        const records = getRecords();
-        const selectedYear = filterYear.value;
-        const filtered = selectedYear === 'all' 
-            ? records 
-            : records.filter(r => r.month.startsWith(selectedYear));
-
-        recordsTableBody.innerHTML = '';
-        statCount.textContent = filtered.length;
-
-        if (filtered.length === 0) {
-            recordsTableBody.innerHTML = '<tr class="empty-row"><td colspan="11">No records found.</td></tr>';
-            return;
-        }
-
-        filtered.forEach(record => {
+        fundsTableBody.innerHTML = '';
+        filtered.forEach(f => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><strong>${formatMonth(record.month)}</strong></td>
-                <td>${formatNumber(record.salary)}</td>
-                <td>${formatNumber(record.pfDeduction)}</td>
-                <td>${formatNumber(record.eobiDeduction)}</td>
-                <td>${formatNumber(record.incomeTax)}</td>
-                <td>${formatNumber(record.withoutPay)}</td>
-                <td class="deduction-text">${formatNumber(record.overallDeduction)}</td>
-                <td class="addition-text">${formatNumber(record.grossSalary)}</td>
-                <td class="net-text"><strong>${formatNumber(record.netPayable)}</strong></td>
-                <td class="remarks-cell" title="${record.remarks || ''}">${record.remarks || '-'}</td>
+                <td>${formatShortMonth(f.month)}</td>
+                <td><span class="badge addition-text">${f.type}</span></td>
+                <td><strong>${formatNumber(f.amount)}</strong></td>
+                <td>${f.remarks || '-'}</td>
                 <td>
                     <div class="table-actions">
-                        <button class="btn-icon-table edit-btn" data-month="${record.month}" title="Edit">✏️</button>
-                        <button class="btn-icon-table delete-btn" data-month="${record.month}" title="Delete">🗑️</button>
+                        <button class="btn-icon-table delete-fund-btn" data-id="${f.id}">🗑️</button>
+                    </div>
+                </td>
+            `;
+            fundsTableBody.appendChild(tr);
+        });
+        
+        document.querySelectorAll('.delete-fund-btn').forEach(btn => btn.addEventListener('click', () => {
+            deleteTarget = { type: 'fund', id: btn.dataset.id };
+            deleteModal.classList.remove('hidden');
+        }));
+    };
+
+    // --- Wave 2: Charts ---
+    const renderCharts = () => {
+        const records = getRecords().sort((a,b) => new Date(a.month) - new Date(b.month));
+        const year = filterYear.value;
+        const filtered = year === 'all' ? records : records.filter(r => r.month.startsWith(year));
+
+        const ctx1 = document.getElementById('salaryTrendChart').getContext('2d');
+        const ctx2 = document.getElementById('deductionBreakdownChart').getContext('2d');
+
+        const labels = filtered.map(r => r.month);
+        const netData = filtered.map(r => parseNumber(r.netPayable));
+        const grossData = filtered.map(r => parseNumber(r.grossSalary));
+
+        // Theme-aware colors
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const textColor = isDark ? '#94a3b8' : '#64748b';
+        const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+        if (salaryTrendChart) salaryTrendChart.destroy();
+        salaryTrendChart = new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Net Pay',
+                        data: netData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Gross Salary',
+                        data: grossData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'transparent',
+                        borderDash: [5, 5],
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { labels: { color: textColor } }
+                },
+                scales: {
+                    x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                    y: { ticks: { color: textColor }, grid: { color: gridColor } }
+                }
+            }
+        });
+
+        // Deduction Breakdown
+        let tPF=0, tTax=0, tShort=0, tEOBI=0, tOthers=0;
+        filtered.forEach(r => {
+            tPF += parseNumber(r.pfDeduction);
+            tTax += parseNumber(r.incomeTax);
+            tShort += parseNumber(r.shortTimeAmount);
+            tEOBI += parseNumber(r.eobiDeduction);
+            tOthers += parseNumber(r.withoutPay);
+        });
+
+        if (deductionPieChart) deductionPieChart.destroy();
+        deductionPieChart = new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: ['PF', 'Tax', 'Short Time', 'EOBI', 'Others'],
+                datasets: [{
+                    data: [tPF, tTax, tShort, tEOBI, tOthers],
+                    backgroundColor: ['#3b82f6', '#ef4444', '#f59e0b', '#8b5cf6', '#64748b'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: textColor } } }
+            }
+        });
+    };
+
+    const downloadPDF = (month) => {
+        const records = getRecords();
+        const r = records.find(x => x.month === month);
+        if (!r) return;
+
+        // Fill template
+        document.getElementById('pdf-month').textContent = formatMonth(r.month);
+        document.getElementById('pdf-base').textContent = `PKR ${formatNumber(r.salary)}`;
+        document.getElementById('pdf-ot').textContent = `PKR ${formatNumber(r.otAmount)}`;
+        document.getElementById('pdf-gross').textContent = `PKR ${formatNumber(r.grossSalary)}`;
+        document.getElementById('pdf-pf').textContent = `PKR ${formatNumber(r.pfDeduction)}`;
+        document.getElementById('pdf-tax').textContent = `PKR ${formatNumber(r.incomeTax)}`;
+        document.getElementById('pdf-eobi').textContent = `PKR ${formatNumber(r.eobiDeduction)}`;
+        document.getElementById('pdf-others').textContent = `PKR ${formatNumber(parseNumber(r.withoutPay) + parseNumber(r.shortTimeAmount))}`;
+        document.getElementById('pdf-deduct').textContent = `PKR ${formatNumber(r.overallDeduction)}`;
+        document.getElementById('pdf-net').textContent = `PKR ${formatNumber(r.netPayable)}`;
+        document.getElementById('pdf-gen-date').textContent = new Date().toLocaleDateString();
+
+        const element = document.getElementById('pdf-template');
+        element.style.display = 'block';
+
+        const opt = {
+            margin: 0,
+            filename: `Salary_Slip_${r.month}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            element.style.display = 'none';
+        });
+    };
+
+    const renderFundsBreakdown = (funds) => {
+        const container = document.getElementById('dash-funds-breakdown');
+        container.innerHTML = '';
+        const totals = {};
+        funds.forEach(f => totals[f.type] = (totals[f.type] || 0) + parseNumber(f.amount));
+        Object.entries(totals).forEach(([type, amt]) => {
+            const div = document.createElement('div');
+            div.className = 'fund-sub-item';
+            div.innerHTML = `<span>${type}:</span> <span>${formatCurrency(amt)}</span>`;
+            container.appendChild(div);
+        });
+    };
+
+    const renderTable = () => {
+        const records = getRecords();
+        const year = filterYear.value;
+        let filtered = year === 'all' ? records : records.filter(r => r.month.startsWith(year));
+        
+        if (searchQuery) {
+            filtered = filtered.filter(r => 
+                r.month.toLowerCase().includes(searchQuery) || 
+                r.remarks?.toLowerCase().includes(searchQuery)
+            );
+        }
+
+        recordsTableBody.innerHTML = '';
+        filtered.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${formatShortMonth(r.month)}</strong></td>
+                <td>${formatNumber(r.salary)}</td>
+                <td>${formatNumber(r.pfDeduction)}</td>
+                <td>${formatNumber(r.eobiDeduction)}</td>
+                <td>${formatNumber(r.incomeTax)}</td>
+                <td>${formatNumber(r.withoutPay)}</td>
+                <td class="deduction-text">${formatNumber(r.overallDeduction)}</td>
+                <td class="addition-text">${formatNumber(r.grossSalary)}</td>
+                <td class="net-text">${formatNumber(r.netPayable)}</td>
+                <td class="remarks-cell">${r.remarks || '-'}</td>
+                <td>
+                    <div class="table-actions">
+                        <button class="btn-icon-table edit-btn" data-month="${r.month}">✏️</button>
+                        <button class="btn-icon-table delete-btn" data-month="${r.month}">🗑️</button>
+                        <button class="btn-icon-table pdf-btn" data-month="${r.month}" title="Download Slip">📄</button>
                     </div>
                 </td>
             `;
             recordsTableBody.appendChild(tr);
         });
 
-        // Add Listeners
-        document.querySelectorAll('.edit-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const month = btn.getAttribute('data-month');
-                loadRecordIntoForm(month);
-                salaryModal.classList.remove('hidden');
-            });
-        });
+        document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', () => {
+            const r = records.find(x => x.month === btn.dataset.month);
+            Object.keys(r).forEach(k => inputs[k] && (inputs[k].value = r[k]));
+            calculate();
+            salaryModal.classList.remove('hidden');
+        }));
 
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                deleteTarget = { type: 'record', id: btn.getAttribute('data-month') };
-                deleteModal.classList.remove('hidden');
-            });
-        });
-    }
+        document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', () => {
+            deleteTarget = { type: 'record', id: btn.dataset.month };
+            deleteModal.classList.remove('hidden');
+        }));
 
-    function renderFundsTable() {
-        const funds = getFunds();
-        fundsTableBody.innerHTML = '';
-        fundsCount.textContent = funds.length;
+        document.querySelectorAll('.pdf-btn').forEach(btn => btn.addEventListener('click', () => {
+            downloadPDF(btn.dataset.month);
+        }));
+    };
 
-        if (funds.length === 0) {
-            fundsTableBody.innerHTML = '<tr class="empty-row"><td colspan="5">No managed funds found.</td></tr>';
-            return;
-        }
-
-        funds.forEach(fund => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${formatMonth(fund.month)}</strong></td>
-                <td><span class="badge net-text">${fund.type}</span></td>
-                <td class="addition-text"><strong>${formatNumber(fund.amount)}</strong></td>
-                <td class="remarks-cell" title="${fund.remarks || ''}">${fund.remarks || '-'}</td>
-                <td>
-                    <div class="table-actions">
-                        <button class="btn-icon-table delete-fund-btn" data-id="${fund.id}" title="Delete">🗑️</button>
-                    </div>
-                </td>
-            `;
-            fundsTableBody.appendChild(tr);
-        });
-
-        document.querySelectorAll('.delete-fund-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                deleteTarget = { type: 'fund', id: btn.getAttribute('data-id') };
-                deleteModal.classList.remove('hidden');
-            });
-        });
-    }
-
-    function addLog(action, itemType, itemId, remarks = '') {
-        const log = {
-            id: Date.now(),
-            timestamp: new Date().toISOString(),
-            action: action, // ADD, EDIT, DELETE
-            itemType: itemType, // SALARY, FUND
-            itemId: itemId,
-            remarks: remarks
-        };
-
-        if (db) {
-            db.ref('activity_logs/' + log.id).set(log);
-        } else {
-            const logs = getLogs();
-            logs.unshift(log);
-            localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(logs.slice(0, 100)));
-            renderLogsTable();
-        }
-    }
-
-    function renderLogsTable() {
-        const logs = getLogs().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        logsTableBody.innerHTML = '';
-        logsCount.textContent = logs.length;
-
-        if (logs.length === 0) {
-            logsTableBody.innerHTML = '<tr class="empty-row"><td colspan="5">No recent activity.</td></tr>';
-            return;
-        }
-
-        logs.forEach(log => {
-            const date = new Date(log.timestamp);
-            const timeStr = date.toLocaleString();
-            const actionClass = log.action === 'DELETE' ? 'deduction-text' : (log.action === 'ADD' ? 'addition-text' : 'net-text');
-            
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><small>${timeStr}</small></td>
-                <td><span class="badge ${actionClass}">${log.action}</span></td>
-                <td>${log.itemType}</td>
-                <td><strong>${log.itemId}</strong></td>
-                <td>${log.remarks || '-'}</td>
-            `;
-            logsTableBody.appendChild(tr);
-        });
-    }
-
-    function updateYearFilter() {
-        const records = getRecords();
-        const funds = getFunds();
+    const updateYearFilter = (records, funds) => {
         const years = new Set();
-        
-        records.forEach(r => years.add(r.month.split('-')[0]));
-        funds.forEach(f => years.add(f.month.split('-')[0]));
-        
-        const sortedYears = Array.from(years).sort((a, b) => b - a);
-        const currentVal = filterYear.value;
-        
+        records.forEach(r => r.month && years.add(r.month.split('-')[0]));
+        funds.forEach(f => f.month && years.add(f.month.split('-')[0]));
+        const current = filterYear.value;
         filterYear.innerHTML = '<option value="all">All Years</option>';
-        sortedYears.forEach(year => {
-            const option = document.createElement('option');
-            option.value = year;
-            option.textContent = year;
-            filterYear.appendChild(option);
+        Array.from(years).filter(y => y !== undefined).sort((a,b)=>b-a).forEach(y => {
+            filterYear.innerHTML += `<option value="${y}">${y}</option>`;
         });
-        
-        filterYear.value = currentVal;
-    }
+        filterYear.value = current;
+    };
 
-    function deleteFund(id) {
-        const funds = getFunds();
-        const fund = funds.find(f => f.id.toString() === id.toString());
-        const info = fund ? `${fund.type} (${fund.month})` : id;
-
-        if (db) {
-            db.ref('funds_records/' + id).remove();
-        } else {
-            let filtered = funds.filter(f => f.id.toString() !== id.toString());
-            localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(filtered));
-            renderFundsTable();
-            updateDashboard();
-        }
-        addLog('DELETE', 'FUND', info);
-    }
-
-    function deleteRecord(month) {
-        if (db) {
-            const firebaseKey = month.replace('-', '_');
-            db.ref('salary_records/' + firebaseKey).remove();
-        } else {
-            let records = getRecords();
-            records = records.filter(r => r.month !== month);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-            renderTable();
-            updateDashboard();
-        }
-        addLog('DELETE', 'SALARY', month);
-    }
-
-    function loadRecordIntoForm(month) {
+    const runComparison = () => {
+        const type = document.getElementById('compare-type').value;
+        const v1 = document.getElementById('compare-1').value;
+        const v2 = document.getElementById('compare-2').value;
         const records = getRecords();
-        const record = records.find(r => r.month === month);
-        if (!record) return;
+        
+        let r1, r2;
 
-        Object.keys(record).forEach(key => {
-            if (inputs[key]) {
-                const val = record[key];
-                if (['salary', 'pfDeduction', 'eobiDeduction', 'incomeTax', 'withoutPay'].includes(key) && val) {
-                    inputs[key].value = formatNumber(val);
-                } else {
-                    inputs[key].value = val;
-                }
-            }
+        if (type === 'month') {
+            r1 = records.find(x => x.month === v1);
+            r2 = records.find(x => x.month === v2);
+        } else {
+            // Aggregate Year
+            const y1 = records.filter(x => x.month.startsWith(v1));
+            const y2 = records.filter(x => x.month.startsWith(v2));
+            
+            const aggregate = (list) => {
+                const res = { salary: 0, grossSalary: 0, overallDeduction: 0, netPayable: 0, month: v1 };
+                list.forEach(r => {
+                    res.salary += parseNumber(r.salary);
+                    res.grossSalary += parseNumber(r.grossSalary);
+                    res.overallDeduction += parseNumber(r.overallDeduction);
+                    res.netPayable += parseNumber(r.netPayable);
+                });
+                return res;
+            };
+            r1 = aggregate(y1);
+            r2 = aggregate(y2);
+            r2.month = v2; // Fix label
+        }
+        
+        if (!r1 || !r2) return;
+
+        const results = document.getElementById('compare-results');
+        results.innerHTML = '';
+
+        const fields = [
+            { label: 'Basic Salary', key: 'salary' },
+            { label: 'Gross Salary', key: 'grossSalary' },
+            { label: 'Total Deductions', key: 'overallDeduction' },
+            { label: 'Net Payable', key: 'netPayable' }
+        ];
+
+        fields.forEach(f => {
+            const val1 = parseNumber(r1[f.key]);
+            const val2 = parseNumber(r2[f.key]);
+            const diff = val2 - val1;
+            const pct = val1 !== 0 ? (diff / val1 * 100).toFixed(1) : 0;
+            const diffClass = diff >= 0 ? (f.key === 'overallDeduction' ? 'deduction-text' : 'addition-text') : (f.key === 'overallDeduction' ? 'addition-text' : 'deduction-text');
+
+            const div = document.createElement('div');
+            div.className = 'summary-card';
+            div.innerHTML = `
+                <label>${f.label}</label>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                        <span>${r1.month}:</span> <span>${formatNumber(val1)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                        <span>${r2.month}:</span> <span>${formatNumber(val2)}</span>
+                    </div>
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 0.5rem; margin-top: 0.5rem; font-weight: 800; text-align: right;" class="${diffClass}">
+                        ${diff >= 0 ? '+' : ''}${formatNumber(diff)} (${pct}%)
+                    </div>
+                </div>
+            `;
+            results.appendChild(div);
         });
-        calculate();
-    }
+    };
 
-    // --- Event Listeners ---
+    const initComparison = () => {
+        const type = document.getElementById('compare-type').value;
+        const records = getRecords();
+        const s1 = document.getElementById('compare-1');
+        const s2 = document.getElementById('compare-2');
+        s1.innerHTML = ''; s2.innerHTML = '';
+        
+        if (type === 'month') {
+            records.forEach(r => {
+                const opt = `<option value="${r.month}">${formatShortMonth(r.month)}</option>`;
+                s1.innerHTML += opt;
+                s2.innerHTML += opt;
+            });
+        } else {
+            const years = [...new Set(records.map(r => r.month.split('-')[0]))].sort((a,b)=>b-a);
+            years.forEach(y => {
+                const opt = `<option value="${y}">${y}</option>`;
+                s1.innerHTML += opt;
+                s2.innerHTML += opt;
+            });
+        }
+        if (s2.options.length > 1) s2.selectedIndex = 1;
+    };
+
+    document.getElementById('compare-type').addEventListener('change', initComparison);
+
+    const renderLogsTable = () => {
+        const logs = getLogs();
+        const body = document.getElementById('logs-body');
+        body.innerHTML = '';
+        logs.forEach(l => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${new Date(l.timestamp).toLocaleString()}</td><td><span class="badge ${l.action==='DELETE'?'deduction-text':'addition-text'}">${l.action}</span></td><td>${l.itemType}</td><td>${l.itemId}</td><td>${l.remarks}</td>`;
+            body.appendChild(tr);
+        });
+    };
+
+    // --- Initialization & Event Listeners ---
+    initVault();
+    initTheme();
+    
+    openSalaryBtn.addEventListener('click', () => salaryModal.classList.remove('hidden'));
+    openFundsBtn.addEventListener('click', () => fundsModal.classList.remove('hidden'));
+    document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', (e) => {
+        e.target.closest('.modal-overlay').classList.add('hidden');
+    }));
+
     form.addEventListener('input', calculate);
-
-    // Format editable inputs on blur
-    ['salary', 'pfDeduction', 'eobiDeduction', 'incomeTax', 'withoutPay'].forEach(key => {
-        inputs[key].addEventListener('blur', (e) => {
-            if (e.target.value) {
-                e.target.value = formatNumber(parseNumber(e.target.value));
-            }
-        });
-    });
-
     form.addEventListener('submit', (e) => {
         e.preventDefault();
-        const recordData = {};
-        Object.keys(inputs).forEach(key => {
-            recordData[key] = inputs[key].value;
-        });
-        saveRecord(recordData);
+        const data = {};
+        Object.keys(inputs).forEach(k => data[k] = inputs[k].value);
+        saveRecord(data);
         salaryModal.classList.add('hidden');
     });
 
-    fundsForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const data = {
-            id: Date.now(),
-            month: document.getElementById('funds-month').value,
-            type: document.getElementById('funds-type').value,
-            amount: document.getElementById('funds-amount').value,
-            remarks: document.getElementById('funds-remarks').value
-        };
-        saveFund(data);
-        fundsModal.classList.add('hidden');
-        fundsForm.reset();
-    });
-
-    toggleDataBtn.addEventListener('click', () => {
-        if (dataView.classList.contains('d-none')) {
-            dataView.classList.remove('d-none');
-            dashboardCards.classList.add('d-none');
-            toggleDataBtn.textContent = 'Show Dashboard';
-            // Force refresh of tables when opening
-            renderTable();
-            renderFundsTable();
-        } else {
-            dataView.classList.add('d-none');
-            dashboardCards.classList.remove('d-none');
-            toggleDataBtn.textContent = 'Show Salary Data';
-        }
-    });
-
-    tabSalary.addEventListener('click', () => {
-        tabSalary.classList.add('active');
-        tabFunds.classList.remove('active');
-        salarySection.classList.remove('d-none');
-        fundsSection.classList.add('d-none');
-    });
-
-    tabFunds.addEventListener('click', () => {
-        tabFunds.classList.add('active');
-        tabSalary.classList.remove('active');
-        tabLogs.classList.remove('active');
-        fundsSection.classList.remove('d-none');
-        salarySection.classList.add('d-none');
-        logsSection.classList.add('d-none');
+    document.getElementById('global-search').addEventListener('input', (e) => {
+        searchQuery = e.target.value.toLowerCase();
+        renderTable();
         renderFundsTable();
     });
 
-    tabLogs.addEventListener('click', () => {
-        tabLogs.classList.add('active');
-        tabSalary.classList.remove('active');
-        tabFunds.classList.remove('active');
-        logsSection.classList.remove('d-none');
-        salarySection.classList.add('d-none');
-        fundsSection.classList.add('d-none');
-        renderLogsTable();
+    showDashboardBtn.addEventListener('click', () => {
+        dataView.classList.toggle('d-none');
+        dashboardCards.classList.toggle('d-none');
+        showDashboardBtn.textContent = dataView.classList.contains('d-none') ? 'Show Salary Data' : 'Show Dashboard';
     });
 
-    filterYear.addEventListener('change', () => {
+    const switchTab = (tabId, sectionId) => {
+        const allTabs = [tabSalary, tabFunds, tabInsights, tabCompare, tabLogs];
+        const allSections = [salarySection, fundsSection, insightsSection, compareSection, logsSection];
+        
+        allTabs.forEach(t => t?.classList.remove('active'));
+        allSections.forEach(s => s?.classList.add('d-none'));
+        
+        document.getElementById(tabId).classList.add('active');
+        document.getElementById(sectionId).classList.remove('d-none');
+    };
+
+    tabSalary.addEventListener('click', () => switchTab('tab-salary', 'salary-section'));
+    tabFunds.addEventListener('click', () => switchTab('tab-funds', 'funds-section'));
+    tabInsights.addEventListener('click', () => {
+        switchTab('tab-insights', 'insights-section');
+        renderCharts();
+    });
+    tabLogs.addEventListener('click', () => {
+        switchTab('tab-logs', 'logs-section');
+        renderLogsTable();
+    });
+    const tabCompare = document.getElementById('tab-compare');
+    const compareSection = document.getElementById('compare-section');
+
+    tabCompare.addEventListener('click', () => {
+        switchTab('tab-compare', 'compare-section');
+        initComparison();
+    });
+
+    document.getElementById('run-compare').addEventListener('click', runComparison);
+
+    document.getElementById('filter-year').addEventListener('change', () => {
         updateDashboard();
         renderTable();
         renderFundsTable();
     });
 
-    confirmDeleteBtn.addEventListener('click', () => {
-        if (deleteTarget) {
-            if (deleteTarget.type === 'record') {
-                deleteRecord(deleteTarget.id);
-            } else if (deleteTarget.type === 'fund') {
-                deleteFund(deleteTarget.id);
+    document.querySelectorAll('.unlock-btn').forEach(btn => btn.addEventListener('click', () => {
+        const targetId = btn.dataset.target;
+        const target = document.getElementById(targetId);
+        if (target.readOnly) {
+            target.readOnly = false;
+            target.classList.remove('auto-calc');
+            btn.textContent = '🔓';
+            btn.style.color = 'var(--accent-primary)';
+        } else {
+            target.readOnly = true;
+            target.classList.add('auto-calc');
+            btn.textContent = '🔒';
+            btn.style.color = 'var(--text-secondary)';
+            calculate(); // Recalculate to restore auto value
+        }
+    }));
+
+    // --- Security Suite ---
+    securityBtn.addEventListener('click', () => {
+        securityModal.classList.remove('hidden');
+        document.getElementById('recovery-email-input').value = localStorage.getItem('recovery_email') || '';
+    });
+    
+    updatePinBtn.addEventListener('click', () => {
+        const current = document.getElementById('current-pin-input').value;
+        const next = document.getElementById('new-pin-input').value;
+        const email = document.getElementById('recovery-email-input').value;
+        const savedPin = localStorage.getItem('vault_pin');
+
+        if (current !== savedPin) {
+            showToast('Current PIN is incorrect!', 'error');
+            return;
+        }
+        
+        if (next) {
+            if (next.length !== 4 || isNaN(next)) {
+                showToast('New PIN must be 4 digits!', 'error');
+                return;
             }
-            deleteModal.classList.add('hidden');
-            deleteTarget = null;
+            localStorage.setItem('vault_pin', next);
+        }
+        
+        if (email) {
+            localStorage.setItem('recovery_email', email);
+        }
+
+        showToast('Security Profile Updated!', 'success');
+        if (next) setTimeout(() => window.location.reload(), 1500);
+        else securityModal.classList.add('hidden');
+    });
+
+    // Recovery Modal Buttons
+    document.getElementById('verify-recovery-btn')?.addEventListener('click', () => {
+        const email = recoveryEmailInput.value;
+        const savedEmail = localStorage.getItem('recovery_email');
+        if (email && email === savedEmail) {
+            recStep1.classList.add('d-none');
+            recStep2.classList.remove('d-none');
+        } else {
+            showToast('Recovery Email not matched!', 'error');
         }
     });
 
+    document.getElementById('finalize-recovery-btn')?.addEventListener('click', () => {
+        const newPin = recoveryNewPinInput.value;
+        if (newPin && newPin.length === 4) {
+            localStorage.setItem('vault_pin', newPin);
+            showToast('PIN Reset Successfully!', 'success');
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showToast('Enter 4 digits!', 'error');
+        }
+    });
 
-    // --- Initialization ---
-    setupUnlockButtons();
-    setupModals();
-    setupFirebaseSync(); 
-    
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    inputs.month.value = currentMonth;
-    if(document.getElementById('funds-month')) document.getElementById('funds-month').value = currentMonth;
-
-    calculate();
-    renderTable();
-    renderFundsTable();
+    // Final Boot
     updateDashboard();
+    renderTable();
 });

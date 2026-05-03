@@ -89,11 +89,31 @@ window.unlockVault = () => {
                 if (typeof window.showToast === 'function') window.showToast('IDENTITY CONFIRMED: ACCESS GRANTED', 'success');
                 setTimeout(() => vaultOverlay.classList.add('d-none'), 500);
             }
-        }, 1800); // Wait for cyber scan animation
+        }, 1800);
     } else if (vaultOverlay) {
         vaultOverlay.style.opacity = '0';
         setTimeout(() => vaultOverlay.classList.add('d-none'), 300);
     }
+};
+
+window.lockVault = () => {
+    const vaultOverlay = document.getElementById('vault-overlay');
+    const vaultCard = document.querySelector('.vault-card');
+    const bioScreen = document.getElementById('biometric-screen');
+    
+    if (vaultOverlay) {
+        vaultOverlay.classList.remove('d-none');
+        setTimeout(() => vaultOverlay.style.opacity = '1', 10);
+    }
+    if (vaultCard) {
+        vaultCard.style.display = 'block';
+        vaultCard.style.opacity = '1';
+    }
+    if (bioScreen) bioScreen.classList.add('hidden');
+    
+    window.enteredPin = '';
+    if (typeof window.updatePinDots === 'function') window.updatePinDots();
+    if (typeof window.showToast === 'function') window.showToast('VAULT LOCKED: SESSION TERMINATED', 'info');
 };
 
 window.showToast = (msg, type = 'info') => {
@@ -1382,6 +1402,31 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('close-audit')?.addEventListener('click', () => {
         document.getElementById('audit-drawer')?.classList.remove('active');
     });
+
+    const logoutBtn = document.getElementById('logout-btn');
+    const logoutModal = document.getElementById('logout-confirm-modal');
+    const confirmLogoutBtn = document.getElementById('confirm-logout-btn');
+    const cancelLogoutBtn = document.getElementById('cancel-logout-btn');
+
+    if (logoutBtn && logoutModal) {
+        logoutBtn.onclick = () => {
+            logoutModal.classList.remove('hidden');
+        };
+        
+        cancelLogoutBtn.onclick = () => {
+            logoutModal.classList.add('hidden');
+        };
+
+        confirmLogoutBtn.onclick = () => {
+            logoutModal.classList.add('hidden');
+            window.lockVault();
+        };
+
+        // Close on overlay click
+        logoutModal.onclick = (e) => {
+            if (e.target === logoutModal) logoutModal.classList.add('hidden');
+        };
+    }
 
     // Final Boot
     initVault();

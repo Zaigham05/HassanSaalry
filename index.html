@@ -95,6 +95,8 @@
                 </select>
                 <button class="btn btn-outline" id="security-settings-btn" title="Security Settings">🔒
                     Settings</button>
+                <button class="btn btn-outline" id="logout-btn" title="Lock Dashboard"
+                    style="border-color: #ef4444; color: #ef4444;">🚪 Logout</button>
                 <button class="btn btn-primary" id="open-salary-modal">+ Add Salary Record</button>
                 <button class="btn btn-outline" id="open-funds-modal">Add Funds</button>
                 <button class="btn btn-outline" id="open-audit-btn" title="Quick Audit Insights">⚖️ Audit</button>
@@ -273,14 +275,23 @@
                             </div>
                         </div>
                         <div class="card" style="grid-column: span 4; margin-top: 2rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                                 <h3>Monthly Earning Heatmap</h3>
-                                <div style="display: flex; gap: 0.5rem; align-items: center; font-size: 0.7rem; color: var(--text-secondary);">
+                                <div
+                                    style="display: flex; gap: 0.5rem; align-items: center; font-size: 0.7rem; color: var(--text-secondary);">
                                     <span>Low</span>
-                                    <div style="width: 12px; height: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 2px;"></div>
-                                    <div style="width: 12px; height: 12px; background: rgba(16, 185, 129, 0.4); border-radius: 2px;"></div>
-                                    <div style="width: 12px; height: 12px; background: rgba(16, 185, 129, 0.7); border-radius: 2px;"></div>
-                                    <div style="width: 12px; height: 12px; background: #10b981; border-radius: 2px;"></div>
+                                    <div
+                                        style="width: 12px; height: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 2px;">
+                                    </div>
+                                    <div
+                                        style="width: 12px; height: 12px; background: rgba(16, 185, 129, 0.4); border-radius: 2px;">
+                                    </div>
+                                    <div
+                                        style="width: 12px; height: 12px; background: rgba(16, 185, 129, 0.7); border-radius: 2px;">
+                                    </div>
+                                    <div style="width: 12px; height: 12px; background: #10b981; border-radius: 2px;">
+                                    </div>
                                     <span>Peak</span>
                                 </div>
                             </div>
@@ -337,12 +348,15 @@
     <!-- Salary Entry Modal (The Pro Form) -->
     <div id="salary-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <div class="modal-header" style="margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+            <div class="modal-header"
+                style="margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <h2 style="font-size: 1.2rem; margin: 0;">New Salary Entry</h2>
-                    <p style="color: var(--text-secondary); font-size: 0.75rem; margin: 0;">Calculations are automatic.</p>
+                    <p style="color: var(--text-secondary); font-size: 0.75rem; margin: 0;">Calculations are automatic.
+                    </p>
                 </div>
-                <button type="button" class="close-modal" style="width: 32px; height: 32px; font-size: 1rem;">&times;</button>
+                <button type="button" class="close-modal"
+                    style="width: 32px; height: 32px; font-size: 1rem;">&times;</button>
             </div>
 
             <form id="salary-form">
@@ -647,6 +661,22 @@
             </div>
             <div id="audit-stats-list" class="audit-grid">
                 <!-- Stats injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logout-confirm-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 400px; text-align: center; padding: 3rem 2rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🚪</div>
+            <h2 style="margin-bottom: 0.5rem;">Confirm Logout</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size: 0.9rem;">Are you sure you want to
+                terminate your active session and lock the vault?</p>
+            <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                <button id="confirm-logout-btn" class="btn btn-primary"
+                    style="background: #ef4444; width: 100%; justify-content: center;">Terminate Session</button>
+                <button id="cancel-logout-btn" class="btn btn-outline"
+                    style="width: 100%; justify-content: center;">Stay Logged In</button>
             </div>
         </div>
     </div>

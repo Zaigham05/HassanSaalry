@@ -713,6 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${formatNumber(r.incomeTax)}</td>
                 <td>${formatNumber(r.withoutPay)}</td>
                 <td class="deduction-text">${formatNumber(r.overallDeduction)}</td>
+                <td class="addition-text">${formatNumber(parseNumber(r.otAmount) || (parseNumber(r.grossSalary) - parseNumber(r.salary)))}</td>
                 <td class="addition-text">${formatNumber(r.grossSalary)}</td>
                 <td class="net-text">${formatNumber(r.netPayable)}</td>
                 <td class="remarks-cell">${r.remarks || '-'}</td>
@@ -1051,6 +1052,68 @@ document.addEventListener('DOMContentLoaded', () => {
         [sSalary, iSalary, sOt, sRaise].forEach(s => s?.addEventListener('input', calculateSimulation));
         calculateSimulation();
     };
+
+    const exportSalary = () => {
+        const records = getRecords();
+        if (records.length === 0) {
+            showToast('No salary records found!', 'error');
+            return;
+        }
+        let csv = 'Month,Base Salary,PF,EOBI,Tax,WP,Deduct,OT Pay,Gross Salary,Net Pay,Remarks\n';
+        records.forEach(r => {
+            const ot = parseNumber(r.otAmount) || (parseNumber(r.grossSalary) - parseNumber(r.salary));
+            const row = [r.month, parseNumber(r.salary), parseNumber(r.pfDeduction), parseNumber(r.eobiDeduction), parseNumber(r.incomeTax), parseNumber(r.withoutPay), parseNumber(r.overallDeduction), ot, parseNumber(r.grossSalary), parseNumber(r.netPayable), `"${(r.remarks || '').replace(/"/g, '""')}"`];
+            csv += row.join(',') + '\n';
+        });
+        downloadCSV(csv, `Salary_History_${new Date().getFullYear()}.csv`);
+        showToast('Exporting Salary Report...', 'success');
+    };
+
+    const exportFunds = () => {
+        const funds = getFunds();
+        if (funds.length === 0) {
+            showToast('No fund records found!', 'error');
+            return;
+        }
+        let csv = 'Month,Type,Amount,Remarks\n';
+        funds.forEach(f => {
+            const row = [f.month, f.type, parseNumber(f.amount), `"${(f.remarks || '').replace(/"/g, '""')}"`];
+            csv += row.join(',') + '\n';
+        });
+        downloadCSV(csv, `Managed_Funds_${new Date().getFullYear()}.csv`);
+        showToast('Exporting Funds Report...', 'success');
+    };
+
+    const downloadCSV = (csv, filename) => {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const exportLogs = () => {
+        const logs = getLogs();
+        if (logs.length === 0) {
+            showToast('No logs found!', 'error');
+            return;
+        }
+        let csv = 'Timestamp,Action,Item Type,Item ID,Remarks\n';
+        logs.forEach(l => {
+            const row = [new Date(l.timestamp).toLocaleString(), l.action, l.itemType, l.itemId, `"${(l.remarks || '').replace(/"/g, '""')}"`];
+            csv += row.join(',') + '\n';
+        });
+        downloadCSV(csv, `Activity_Logs_${new Date().getFullYear()}.csv`);
+        showToast('Exporting Logs Report...', 'success');
+    };
+
+    document.getElementById('export-salary-btn')?.addEventListener('click', exportSalary);
+    document.getElementById('export-funds-btn')?.addEventListener('click', exportFunds);
+    document.getElementById('export-logs-btn')?.addEventListener('click', exportLogs);
 
     // Final Boot
     updateDashboard();

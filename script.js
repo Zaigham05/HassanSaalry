@@ -335,6 +335,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         updateDashboard();
                     }
                 });
+
+                db.ref('vault_settings').on('value', snapshot => {
+                    const settings = snapshot.val();
+                    if (settings) {
+                        if (settings.pin) localStorage.setItem('vault_pin', settings.pin);
+                        if (settings.recovery_email) localStorage.setItem('recovery_email', settings.recovery_email);
+                    }
+                });
             } catch (e) {
                 console.error("Cloud Sync Error:", e);
             }
@@ -1086,10 +1094,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('New PIN must be 4 digits!', 'error');
                 return;
             }
+            if (db) db.ref('vault_settings/pin').set(next);
             localStorage.setItem('vault_pin', next);
         }
         
         if (email) {
+            if (db) db.ref('vault_settings/recovery_email').set(email);
             localStorage.setItem('recovery_email', email);
         }
 
@@ -1113,6 +1123,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('finalize-recovery-btn')?.addEventListener('click', () => {
         const newPin = recoveryNewPinInput.value;
         if (newPin && newPin.length === 4) {
+            if (db) db.ref('vault_settings/pin').set(newPin);
             localStorage.setItem('vault_pin', newPin);
             showToast('PIN Reset Successfully!', 'success');
             setTimeout(() => window.location.reload(), 1500);

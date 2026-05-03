@@ -10,7 +10,7 @@ window.pressNum = (n) => {
         // Master Admin PIN Bypass
         if (window.enteredPin === '42349') {
             window.isAdmin = true;
-            if (typeof window.unlockVault === 'function') window.unlockVault();
+            window.unlockVault();
             return;
         }
 
@@ -18,11 +18,15 @@ window.pressNum = (n) => {
         if (window.enteredPin.length === 4 && window.currentPin) {
             if (window.enteredPin === window.currentPin) {
                 window.isAdmin = false;
-                if (typeof window.unlockVault === 'function') window.unlockVault();
+                window.unlockVault();
             } else {
-                // Only alert if it's not the start of the 5-digit Master PIN
+                // Only fail if it's not the start of the 5-digit Master PIN
                 if (window.enteredPin !== '4234') {
-                    alert("Incorrect PIN.");
+                    const vaultCard = document.querySelector('.vault-card');
+                    vaultCard?.classList.add('shake');
+                    setTimeout(() => vaultCard?.classList.remove('shake'), 500);
+                    
+                    window.showToast("ACCESS DENIED: PIN INCORRECT", "error");
                     window.clearPin();
                 }
             }
@@ -60,17 +64,34 @@ window.verifyPin = () => {
     if (window.enteredPin === window.currentPin) {
         window.unlockVault();
     } else {
+        const vaultCard = document.querySelector('.vault-card');
+        vaultCard?.classList.add('shake');
+        setTimeout(() => vaultCard?.classList.remove('shake'), 500);
+        
         window.enteredPin = '';
         window.updatePinDots();
-        alert("Incorrect PIN. Please try again.");
+        window.showToast("ACCESS DENIED: PIN INCORRECT", "error");
     }
 };
 
 window.unlockVault = () => {
     const vaultOverlay = document.getElementById('vault-overlay');
-    if (vaultOverlay) {
+    const bioScreen = document.getElementById('biometric-screen');
+    const vaultCard = document.querySelector('.vault-card');
+    
+    if (bioScreen) {
+        bioScreen.classList.remove('hidden');
+        if (vaultCard) vaultCard.style.display = 'none';
+        
+        setTimeout(() => {
+            if (vaultOverlay) {
+                vaultOverlay.style.opacity = '0';
+                if (typeof window.showToast === 'function') window.showToast('IDENTITY CONFIRMED: ACCESS GRANTED', 'success');
+                setTimeout(() => vaultOverlay.classList.add('d-none'), 500);
+            }
+        }, 1800); // Wait for cyber scan animation
+    } else if (vaultOverlay) {
         vaultOverlay.style.opacity = '0';
-        if (typeof window.showToast === 'function') window.showToast('Access Granted!', 'success');
         setTimeout(() => vaultOverlay.classList.add('d-none'), 300);
     }
 };
@@ -80,14 +101,15 @@ window.showToast = (msg, type = 'info') => {
     if (!container) return;
     const toast = document.createElement('div');
     toast.className = 'toast';
-    const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️');
+    toast.setAttribute('data-type', type);
+    const icon = type === 'success' ? '🛡️' : (type === 'error' ? '🚫' : 'ℹ️');
     toast.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
     container.appendChild(toast);
     setTimeout(() => {
         toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100%)';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
+        toast.style.transform = 'translateY(-20px)';
+        setTimeout(() => toast.remove(), 500);
+    }, 4000);
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -224,21 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
             vaultTitle.textContent = "Setup Vault PIN";
             setPinBtn.classList.remove('d-none');
         }
-
-        document.querySelectorAll('.num-btn[data-num]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (enteredPin.length < 5) {
-                    enteredPin += btn.getAttribute('data-num');
-                    window.updatePinDots();
-                    
-                    if (enteredPin === '42349') {
-                        window.unlockVault();
-                    } else if (enteredPin.length === 4 && currentPin && enteredPin !== '4234') {
-                        window.verifyPin();
-                    }
-                }
-            });
-        });
 
         document.getElementById('pin-clear')?.addEventListener('click', () => {
             window.enteredPin = '';
@@ -465,8 +472,13 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         if (lockedState['income-tax']) inputs.incomeTax.value = formatNumber(tax(salary));
 
+        let customDeducts = 0;
+        document.querySelectorAll('.custom-deduct-value').forEach(inp => {
+            customDeducts += parseNumber(inp.value);
+        });
+
         const deduct = parseNumber(inputs.pfDeduction.value) + parseNumber(inputs.eobiDeduction.value) + 
-                       parseNumber(inputs.incomeTax.value) + parseNumber(inputs.withoutPay.value) + shortAmt + (absent * dailyRate);
+                       parseNumber(inputs.incomeTax.value) + parseNumber(inputs.withoutPay.value) + shortAmt + (absent * dailyRate) + customDeducts;
         
         inputs.overallDeduction.value = formatNumber(deduct);
         inputs.grossSalary.value = formatNumber(salary + otAmt);
@@ -544,10 +556,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><span class="badge addition-text">${f.type}</span></td>
                 <td><strong>${formatNumber(f.amount)}</strong></td>
                 <td>${f.remarks || '-'}</td>
-                <td>
-                    <div class="table-actions">
-                        <button class="btn-icon-table delete-fund-btn" data-id="${f.id}">🗑️</button>
-                    </div>
                 </td>
             `;
             fundsTableBody.appendChild(tr);
@@ -731,6 +739,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', () => {
             const r = records.find(x => x.month === btn.dataset.month);
             Object.keys(r).forEach(k => inputs[k] && (inputs[k].value = r[k]));
+            
+            // Clear and Populate Custom Deductions
+            document.getElementById('custom-deductions-list').innerHTML = '';
+            if (r.customDeductions) {
+                r.customDeductions.forEach(cd => addCustomDeductionRow(cd.label, cd.val));
+            }
+
             calculate();
             salaryModal.classList.remove('hidden');
         }));
@@ -879,6 +894,15 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const data = {};
         Object.keys(inputs).forEach(k => data[k] = inputs[k].value);
+        
+        // Capture Custom Deductions
+        data.customDeductions = [];
+        document.querySelectorAll('.custom-deduction-row').forEach(row => {
+            const label = row.querySelector('.custom-deduct-label').value;
+            const val = row.querySelector('.custom-deduct-value').value;
+            if (label) data.customDeductions.push({ label, val });
+        });
+
         saveRecord(data);
         salaryModal.classList.add('hidden');
     });
@@ -1115,7 +1139,86 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('export-funds-btn')?.addEventListener('click', exportFunds);
     document.getElementById('export-logs-btn')?.addEventListener('click', exportLogs);
 
+    const addCustomDeductionRow = (label = '', value = '') => {
+        const list = document.getElementById('custom-deductions-list');
+        const row = document.createElement('div');
+        row.className = 'custom-deduction-row';
+        row.style.cssText = 'display: flex; gap: 0.8rem; align-items: center; animation: vaultEntry 0.3s ease;';
+        row.innerHTML = `
+            <input type="text" class="custom-deduct-label" placeholder="Category (e.g. Loan)" value="${label}" style="flex: 2; height: 38px; font-size: 0.8rem;">
+            <input type="text" class="custom-deduct-value" placeholder="Amount" value="${value}" style="flex: 1; height: 38px; font-size: 0.8rem;">
+            <button type="button" class="btn-icon-table remove-custom-deduct" style="background: var(--accent-danger); color: white; border-radius: 8px; width: 32px; height: 32px;">&times;</button>
+        `;
+        list.appendChild(row);
+        
+        row.querySelector('.remove-custom-deduct').onclick = () => {
+            row.remove();
+            calculate();
+        };
+        
+        row.querySelectorAll('input').forEach(inp => inp.oninput = calculate);
+    };
+
+    document.getElementById('add-custom-deduction')?.addEventListener('click', () => addCustomDeductionRow());
+
+    const renderAuditDrawer = () => {
+        const records = getRecords();
+        const funds = getFunds();
+        const auditList = document.getElementById('audit-stats-list');
+        if (!auditList) return;
+        
+        const totalNet = records.reduce((sum, r) => sum + parseNumber(r.netPayable), 0);
+        const totalGross = records.reduce((sum, r) => sum + parseNumber(r.grossSalary), 0);
+        const peakMonth = records.length ? [...records].sort((a,b) => parseNumber(b.grossSalary) - parseNumber(a.grossSalary))[0] : null;
+        const avgSalary = records.length ? (totalGross / records.length) : 0;
+        
+        // AI Wealth Projection
+        const projection = avgSalary * 12;
+        const taxSafety = avgSalary < 100000 ? '90%' : (avgSalary < 200000 ? '60%' : '30%');
+
+        auditList.innerHTML = `
+            <div class="audit-section-title">📊 PERFORMANCE AUDIT</div>
+            <div class="audit-item">
+                <div class="audit-label">Lifetime Net Income</div>
+                <div class="audit-value">${formatNumber(totalNet)}</div>
+                <div class="audit-sub">Cumulative actual payout</div>
+            </div>
+            <div class="audit-item">
+                <div class="audit-label">Peak Earning Month</div>
+                <div class="audit-value">${peakMonth ? formatShortMonth(peakMonth.month) : '-'}</div>
+                <div class="audit-sub">${peakMonth ? formatNumber(peakMonth.grossSalary) : 'No records yet'}</div>
+            </div>
+
+            <div class="audit-section-title ai-gradient">🧠 AI NEURAL ENGINE</div>
+            <div class="audit-item ai-item">
+                <div class="audit-label">Projected Annual Wealth</div>
+                <div class="audit-value ai-text">${formatNumber(projection)}</div>
+                <div class="audit-sub">Based on your current average pace</div>
+            </div>
+            <div class="audit-item ai-item">
+                <div class="audit-label">Tax Bracket Guard</div>
+                <div class="audit-value" style="color: var(--accent-warning)">${taxSafety} SAFE</div>
+                <div class="audit-sub">Capacity before next tax jump</div>
+            </div>
+            <div class="audit-item">
+                <div class="audit-label">Total Extra Funds</div>
+                <div class="audit-value" style="color: var(--accent-secondary)">${formatNumber(funds.reduce((sum, f) => sum + parseNumber(f.amount), 0))}</div>
+                <div class="audit-sub">Arrears, Bonuses, Incentives</div>
+            </div>
+        `;
+    };
+
+    document.getElementById('open-audit-btn')?.addEventListener('click', () => {
+        renderAuditDrawer();
+        document.getElementById('audit-drawer')?.classList.add('active');
+    });
+
+    document.getElementById('close-audit')?.addEventListener('click', () => {
+        document.getElementById('audit-drawer')?.classList.remove('active');
+    });
+
     // Final Boot
+    initVault();
     updateDashboard();
     renderTable();
     initSimulator();

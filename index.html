@@ -19,6 +19,18 @@
 <body>
     <!-- The Vault (Security Lock) -->
     <div id="vault-overlay">
+        <!-- Biometric Scan Overlay (Hidden until PIN verified) -->
+        <div id="biometric-screen" class="hidden">
+            <div class="scanner-container">
+                <div class="scan-circle">
+                    <div class="laser"></div>
+                    <div class="fingerprint"></div>
+                </div>
+                <div class="scan-text">IDENTITY VERIFIED</div>
+                <div class="scan-subtext">INITIATING SECURE ACCESS...</div>
+            </div>
+        </div>
+
         <div class="vault-card">
             <span class="vault-icon">🔒</span>
             <h2 id="vault-title">Enter Vault PIN</h2>
@@ -74,9 +86,10 @@
                     <option value="2025">2025</option>
                     <option value="2024">2024</option>
                 </select>
-                <button id="security-settings-btn" class="btn btn-outline" title="Security Settings">🔒 Settings</button>
+                <button class="btn btn-outline" id="security-settings-btn" title="Security Settings">🔒 Settings</button>
                 <button class="btn btn-primary" id="open-salary-modal">+ Add Salary Record</button>
                 <button class="btn btn-outline" id="open-funds-modal">Add Funds</button>
+                <button class="btn btn-outline" id="open-audit-btn" title="Quick Audit Insights">⚖️ Audit</button>
                 <button class="btn btn-outline" id="show-dashboard-btn">Show Dashboard</button>
             </div>
         </header>
@@ -365,7 +378,19 @@
                         <label>Without Pay (Manual)</label>
                         <input type="text" id="without-pay" value="0">
                     </div>
-                    <div class="form-group full-width">
+
+                    <!-- Custom Deductions Engine -->
+                    <div class="form-group full-width" style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="font-size: 0.9rem; letter-spacing: 1px; color: var(--accent-primary);">ADDITIONAL DEDUCTIONS</h3>
+                            <button type="button" id="add-custom-deduction" class="btn btn-outline btn-sm">+ Add Category</button>
+                        </div>
+                        <div id="custom-deductions-list" style="display: flex; flex-direction: column; gap: 1rem;">
+                            <!-- Dynamic rows will appear here -->
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width" style="margin-top: 1rem;">
                         <label>Remarks</label>
                         <textarea id="remarks" rows="2" placeholder="Any additional notes..."></textarea>
                     </div>
@@ -531,6 +556,19 @@
 
         <div style="font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center;">
             This is a computer-generated document and does not require a physical signature. Generated on <span id="pdf-gen-date"></span>
+        </div>
+    </div>
+
+    <!-- Quick-Audit Insights Drawer -->
+    <div id="audit-drawer" class="drawer">
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <h2>Quick Audit Insights</h2>
+                <button id="close-audit" class="close-modal">&times;</button>
+            </div>
+            <div id="audit-stats-list" class="audit-grid">
+                <!-- Stats injected here -->
+            </div>
         </div>
     </div>
 

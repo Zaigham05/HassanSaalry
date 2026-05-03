@@ -242,10 +242,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const initVault = () => {
-        if (!window.currentPin) {
-            vaultTitle.textContent = "Setup Vault PIN";
-            setPinBtn.classList.remove('d-none');
-        }
+        const checkVaultState = () => {
+            if (!window.currentPin) {
+                vaultTitle.textContent = "Setup Vault PIN";
+                setPinBtn.classList.remove('d-none');
+                setPinBtn.style.display = 'block';
+            } else {
+                vaultTitle.textContent = "Vault PIN Required";
+                setPinBtn.classList.add('d-none');
+                setPinBtn.style.display = 'none';
+            }
+        };
+        checkVaultState();
+        window.checkVaultState = checkVaultState;
 
         document.getElementById('pin-clear')?.addEventListener('click', () => {
             window.enteredPin = '';
@@ -261,6 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.enteredPin.length === 4) {
                 localStorage.setItem('vault_pin', window.enteredPin);
                 window.currentPin = window.enteredPin;
+                if (db) db.ref('vault_settings/pin').set(window.enteredPin);
                 window.unlockVault();
             } else {
                 window.showToast("Please enter a 4-digit PIN first.", "error");
@@ -339,8 +349,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 db.ref('vault_settings').on('value', snapshot => {
                     const settings = snapshot.val();
                     if (settings) {
-                        if (settings.pin) localStorage.setItem('vault_pin', settings.pin);
+                        if (settings.pin) {
+                            localStorage.setItem('vault_pin', settings.pin);
+                            window.currentPin = settings.pin;
+                        }
                         if (settings.recovery_email) localStorage.setItem('recovery_email', settings.recovery_email);
+                        if (typeof window.checkVaultState === 'function') window.checkVaultState();
+                    } else {
+                        // MIGRATION: If server is empty but we have local pin, upload to server
+                        const localPin = localStorage.getItem('vault_pin');
+                        const localEmail = localStorage.getItem('recovery_email');
+                        if (localPin) {
+                            db.ref('vault_settings').set({
+                                pin: localPin,
+                                recovery_email: localEmail || ''
+                            });
+                        }
                     }
                 });
             } catch (e) {

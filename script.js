@@ -459,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const shortAmt = parseTime(inputs.shortTime.value) * hourlyRate;
         inputs.shortTimeAmount.value = formatNumber(shortAmt);
 
-        const otAmt = parseTime(inputs.otTime.value) * hourlyRate;
+        const otAmt = parseTime(inputs.otTime.value) * hourlyRate * 2;
         inputs.otAmount.value = formatNumber(otAmt);
 
         if (lockedState['pf-deduction']) inputs.pfDeduction.value = formatNumber(salary * 0.0834);
@@ -556,11 +556,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><span class="badge addition-text">${f.type}</span></td>
                 <td><strong>${formatNumber(f.amount)}</strong></td>
                 <td>${f.remarks || '-'}</td>
+                <td>
+                    <div class="table-actions">
+                        <button class="btn-icon-table edit-fund-btn" data-id="${f.id}">✏️</button>
+                        <button class="btn-icon-table delete-fund-btn" data-id="${f.id}">🗑️</button>
+                    </div>
                 </td>
             `;
             fundsTableBody.appendChild(tr);
         });
         
+        document.querySelectorAll('.edit-fund-btn').forEach(btn => btn.addEventListener('click', () => {
+            const f = getFunds().find(x => x.id == btn.dataset.id);
+            document.getElementById('fund-id').value = f.id;
+            document.getElementById('funds-month').value = f.month;
+            document.getElementById('funds-type').value = f.type;
+            document.getElementById('funds-amount').value = f.amount;
+            document.getElementById('funds-remarks').value = f.remarks || '';
+            fundsModal.classList.remove('hidden');
+        }));
+
         document.querySelectorAll('.delete-fund-btn').forEach(btn => btn.addEventListener('click', () => {
             deleteTarget = { type: 'fund', id: btn.dataset.id };
             deleteModal.classList.remove('hidden');
@@ -883,8 +898,73 @@ document.addEventListener('DOMContentLoaded', () => {
     initVault();
     initTheme();
     
-    openSalaryBtn.addEventListener('click', () => salaryModal.classList.remove('hidden'));
-    openFundsBtn.addEventListener('click', () => fundsModal.classList.remove('hidden'));
+    openSalaryBtn.addEventListener('click', () => {
+        form.reset();
+        document.getElementById('custom-deductions-list').innerHTML = '';
+        inputs.month.value = new Date().toISOString().slice(0, 7);
+        salaryModal.classList.remove('hidden');
+        calculate();
+    });
+
+    openFundsBtn.addEventListener('click', () => {
+        document.getElementById('funds-form').reset();
+        document.getElementById('fund-id').value = '';
+        document.getElementById('funds-month').value = new Date().toISOString().slice(0, 7);
+        fundsModal.classList.remove('hidden');
+    });
+
+    document.getElementById('funds-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = document.getElementById('fund-id').value || Date.now();
+        const fund = {
+            id: id,
+            month: document.getElementById('funds-month').value,
+            type: document.getElementById('funds-type').value,
+            amount: document.getElementById('funds-amount').value,
+            remarks: document.getElementById('funds-remarks').value
+        };
+        
+        const funds = getFunds();
+        const existingIndex = funds.findIndex(f => f.id == id);
+        if (existingIndex >= 0) funds[existingIndex] = fund;
+        else funds.push(fund);
+        
+        if (db) {
+            db.ref('funds_records/' + id).set(fund);
+        } else {
+            localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(funds));
+            updateDashboard();
+        }
+        
+        showToast(existingIndex >= 0 ? 'Fund Updated!' : 'Fund Added!', 'success');
+        fundsModal.classList.add('hidden');
+    });
+
+    document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+        if (!deleteTarget) return;
+        if (deleteTarget.type === 'record') {
+            const records = getRecords().filter(r => r.month !== deleteTarget.id);
+            if (db) db.ref('salary_records/' + deleteTarget.id.replace('-', '_')).remove();
+            else {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+                renderTable();
+                updateDashboard();
+            }
+            addLog('DELETE', 'SALARY', deleteTarget.id);
+        } else {
+            const funds = getFunds().filter(f => f.id != deleteTarget.id);
+            if (db) db.ref('funds_records/' + deleteTarget.id).remove();
+            else {
+                localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(funds));
+                updateDashboard();
+            }
+            addLog('DELETE', 'FUND', deleteTarget.id);
+        }
+        deleteModal.classList.add('hidden');
+        showToast('Record Deleted Successfully', 'success');
+    });
+
+    document.getElementById('cancel-delete').addEventListener('click', () => deleteModal.classList.add('hidden'));
     document.querySelectorAll('.close-modal').forEach(btn => btn.addEventListener('click', (e) => {
         e.target.closest('.modal-overlay').classList.add('hidden');
     }));

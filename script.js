@@ -203,6 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         netReg: document.getElementById('dash-net-reg'),
         netOT: document.getElementById('dash-net-ot'),
         avg: document.getElementById('dash-avg'),
+        avgTotal: document.getElementById('dash-avg-total'),
         avgReg: document.getElementById('dash-avg-reg'),
         avgOT: document.getElementById('dash-avg-ot')
     };
@@ -548,7 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateYearFilter(records, funds);
 
-        let tBasic=0, tOT=0, tDeduct=0, tPF=0, tTax=0, tShort=0, tEOBI=0, tOthers=0, tNet=0, tFunds=0;
+        let tBasic=0, tOT=0, tDeduct=0, tPF=0, tTax=0, tShort=0, tEOBI=0, tOthers=0, tNet=0, tFunds=0, tFundTax=0;
 
         filteredRecords.forEach(r => {
             tBasic += parseNumber(r.salary);
@@ -562,24 +563,32 @@ document.addEventListener('DOMContentLoaded', () => {
             tNet += parseNumber(r.netPayable);
         });
 
-        filteredFunds.forEach(f => tFunds += parseNumber(f.amount));
+        filteredFunds.forEach(f => {
+            const amt = parseNumber(f.amount);
+            const tx = parseNumber(f.tax || 0);
+            tFunds += (amt - tx);
+            tFundTax += tx;
+        });
 
         dashStats.gross.innerHTML = formatCurrency(tNet + tDeduct);
         dashStats.basic.innerHTML = formatCurrency(tBasic);
         dashStats.ot.innerHTML = formatCurrency(tOT);
         dashStats.funds.innerHTML = formatCurrency(tFunds);
-        dashStats.deduction.innerHTML = formatCurrency(tDeduct);
+        dashStats.deduction.innerHTML = formatCurrency(tDeduct + tFundTax);
         dashStats.pf.innerHTML = formatCurrency(tPF);
         dashStats.tax.innerHTML = formatCurrency(tTax);
+        document.getElementById('dash-fund-tax').innerHTML = formatCurrency(tFundTax);
         dashStats.short.innerHTML = formatCurrency(tShort);
         dashStats.eobi.innerHTML = formatCurrency(tEOBI);
         dashStats.others.innerHTML = formatCurrency(tOthers);
         dashStats.net.innerHTML = formatCurrency(tNet + tFunds);
+        document.getElementById('dash-total-salary').innerHTML = formatCurrency(tNet);
         dashStats.netReg.innerHTML = formatCurrency(tNet - tOT);
         dashStats.netOT.innerHTML = formatCurrency(tOT);
 
         const count = filteredRecords.length || 1;
         dashStats.avg.innerHTML = formatCurrency((tNet + tFunds)/count);
+        if (dashStats.avgTotal) dashStats.avgTotal.innerHTML = formatCurrency(tNet/count);
         dashStats.avgReg.innerHTML = formatCurrency((tNet - tOT)/count);
         dashStats.avgOT.innerHTML = formatCurrency(tOT/count);
 
@@ -607,6 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${formatShortMonth(f.month)}</td>
                 <td><span class="badge addition-text">${f.type}</span></td>
                 <td><strong>${formatNumber(f.amount)}</strong></td>
+                <td class="deduction-text">${formatNumber(f.tax || 0)}</td>
                 <td>${f.remarks || '-'}</td>
                 <td>
                     <div class="table-actions">
@@ -624,6 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('funds-month').value = f.month;
             document.getElementById('funds-type').value = f.type;
             document.getElementById('funds-amount').value = f.amount;
+            document.getElementById('funds-tax').value = f.tax || '0';
             document.getElementById('funds-remarks').value = f.remarks || '';
             fundsModal.classList.remove('hidden');
         }));
@@ -725,7 +736,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) return;
         
         const records = getRecords();
-        const funds = getFunds();
         const dataMap = {};
         let maxPay = 0;
         
@@ -733,15 +743,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const pay = parseNumber(r.netPayable);
             dataMap[r.month] = (dataMap[r.month] || 0) + pay;
         });
-        
-        funds.forEach(f => {
-            const amt = parseNumber(f.amount);
-            dataMap[f.month] = (dataMap[f.month] || 0) + amt;
-        });
 
         Object.values(dataMap).forEach(v => { if (v > maxPay) maxPay = v; });
 
-        const years = [...new Set([...records, ...funds].map(x => x.month?.split('-')[0]))].sort((a,b) => b-a);
+        const years = [...new Set(records.map(x => x.month?.split('-')[0]))].sort((a,b) => b-a);
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
         let html = '<div class="heatmap-grid"><div></div>';
@@ -761,7 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     color = `rgba(16, 185, 129, ${Math.max(0.2, intensity)})`;
                 }
 
-                const tooltip = val > 0 ? `${months[m-1]} ${year} | Net Pay: PKR ${formatNumber(val)}` : 'No Data';
+                const tooltip = val > 0 ? `${months[m-1]} ${year} | Net Salary: PKR ${formatNumber(val)}` : 'No Data';
                 html += `<div class="heatmap-cell" style="background: ${color}" data-tooltip="${tooltip}"></div>`;
             }
         });
@@ -838,6 +843,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${formatNumber(r.eobiDeduction)}</td>
                 <td>${formatNumber(r.incomeTax)}</td>
                 <td>${formatNumber(r.withoutPay)}</td>
+                <td class="deduction-text">${formatNumber(r.shortTimeAmount || 0)}</td>
                 <td class="deduction-text">${formatNumber(r.overallDeduction)}</td>
                 <td class="addition-text">${formatNumber(parseNumber(r.otAmount) || (parseNumber(r.grossSalary) - parseNumber(r.salary)))}</td>
                 <td class="addition-text">${formatNumber(r.grossSalary)}</td>
@@ -1024,6 +1030,7 @@ document.addEventListener('DOMContentLoaded', () => {
             month: document.getElementById('funds-month').value,
             type: document.getElementById('funds-type').value,
             amount: document.getElementById('funds-amount').value,
+            tax: document.getElementById('funds-tax').value || '0',
             remarks: document.getElementById('funds-remarks').value
         };
         
@@ -1147,11 +1154,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.readOnly) {
             target.readOnly = false;
             target.classList.remove('auto-calc');
+            lockedState[targetId] = false; // Disable auto-calc for this field
             btn.textContent = '🔓';
             btn.style.color = 'var(--accent-primary)';
         } else {
             target.readOnly = true;
             target.classList.add('auto-calc');
+            lockedState[targetId] = true; // Re-enable auto-calc
             btn.textContent = '🔒';
             btn.style.color = 'var(--text-secondary)';
             calculate(); // Recalculate to restore auto value

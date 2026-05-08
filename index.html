@@ -216,8 +216,11 @@
                 </div>
 
                 <div id="salary-section">
-                    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-                        <button class="btn btn-outline" id="export-salary-btn">📊 Export Salary Records</button>
+                    <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                        <button class="btn btn-outline" id="export-salary-btn">📊 Export Records</button>
+                        <button class="btn btn-primary" id="export-yearly-audit-btn">📄 Yearly Audit</button>
+                        <button class="btn btn-accent" id="export-alltime-audit-btn">🏛️ All-Time Summary</button>
+                        <button class="btn btn-accent" style="background: #8b5cf6;" id="export-tax-cert-btn">📜 Tax Certificate</button>
                     </div>
                     <div class="table-container">
                         <table>
@@ -671,7 +674,6 @@
         <div class="drawer-content">
             <div class="drawer-header">
                 <h2>Quick Audit Insights</h2>
-                <button id="close-audit" class="close-modal">&times;</button>
             </div>
             <div id="audit-stats-list" class="audit-grid">
                 <!-- Stats injected here -->
@@ -679,23 +681,138 @@
         </div>
     </div>
 
-    <!-- Logout Confirmation Modal -->
-    <div id="logout-confirm-modal" class="modal-overlay hidden">
-        <div class="modal-content" style="max-width: 400px; text-align: center; padding: 3rem 2rem;">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">🚪</div>
-            <h2 style="margin-bottom: 0.5rem;">Confirm Logout</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size: 0.9rem;">Are you sure you want to
-                terminate your active session and lock the vault?</p>
-            <div style="display: flex; flex-direction: column; gap: 0.8rem;">
-                <button id="confirm-logout-btn" class="btn btn-primary"
-                    style="background: #ef4444; width: 100%; justify-content: center;">Terminate Session</button>
-                <button id="cancel-logout-btn" class="btn btn-outline"
-                    style="width: 100%; justify-content: center;">Stay Logged In</button>
+    <!-- Tax Certificate Period Selector Modal -->
+    <div id="tax-period-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>Select Certificate Period</h2>
+                <button class="close-modal" id="close-tax-period-modal">&times;</button>
+            </div>
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">Choose the accounting period for your Tax Deduction Certificate.</p>
+                
+                <div class="form-group">
+                    <label>Base Year</label>
+                    <select id="tax-base-year" class="form-control"></select>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 0.8rem; margin-top: 1rem;">
+                    <button class="btn btn-primary" id="btn-tax-linear">📅 Linear Year (Jan - Dec)</button>
+                    <button class="btn btn-accent" id="btn-tax-fiscal">🏛️ Fiscal Year (Jul - Jun)</button>
+                    <button class="btn btn-outline" id="btn-tax-alltime">🌌 All-Time Summary</button>
+                </div>
             </div>
         </div>
     </div>
 
+    </div>
+
+    <!-- Professional Audit Report Template -->
+    <div id="audit-report-template" style="display: none; padding: 40px; font-family: 'Inter', sans-serif; color: #1a1a1a; background: #fff; width: 800px;">
+        <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #3b82f6; padding-bottom: 20px; margin-bottom: 30px;">
+            <div>
+                <h1 style="margin: 0; color: #3b82f6; font-size: 24px;">FINANCIAL PERFORMANCE AUDIT</h1>
+                <p id="audit-report-subtitle" style="margin: 5px 0 0; color: #64748b; font-size: 14px;">Summary Report</p>
+            </div>
+            <div style="text-align: right;">
+                <h2 style="margin: 0; font-size: 18px;">MR HASSAN</h2>
+                <p style="margin: 5px 0 0; color: #64748b; font-size: 12px;" id="audit-gen-date"></p>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 40px;">
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <span style="font-size: 10px; text-transform: uppercase; color: #64748b;">Total Gross</span>
+                <strong id="audit-total-gross" style="display: block; font-size: 16px; margin-top: 5px;"></strong>
+            </div>
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <span style="font-size: 10px; text-transform: uppercase; color: #64748b;">Total Deduct</span>
+                <strong id="audit-total-deduct" style="display: block; font-size: 16px; margin-top: 5px; color: #ef4444;"></strong>
+            </div>
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <span style="font-size: 10px; text-transform: uppercase; color: #64748b;">Total Net</span>
+                <strong id="audit-total-net" style="display: block; font-size: 16px; margin-top: 5px; color: #3b82f6;"></strong>
+            </div>
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <span style="font-size: 10px; text-transform: uppercase; color: #64748b;">Managed Funds (Net)</span>
+                <strong id="audit-total-funds" style="display: block; font-size: 16px; margin-top: 5px; color: #10b981;"></strong>
+            </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <thead style="background: #f1f5f9;">
+                <tr>
+                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0;">Period</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0;">Gross Salary</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0;">Tax Deduct</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0;">Net Payable</th>
+                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0;">Extra Funds</th>
+                </tr>
+            </thead>
+            <tbody id="audit-table-body">
+                <!-- Rows injected here -->
+            </tbody>
+        </table>
+
+        <div style="margin-top: 50px; border-top: 1px solid #e2e8f0; padding-top: 20px; font-size: 10px; color: #64748b; text-align: center;">
+            This is an automated financial report generated by Salary Hub Enterprise. Verified securely via vault protocols.
+        </div>
+    </div>
+
     <!-- Firebase SDKs -->
+    <!-- Official Income Tax Certificate Template -->
+    <div id="tax-cert-template" style="display: none; padding: 25px; font-family: 'Times New Roman', serif; color: #1a1a1a; background: #fff; width: 700px; border: 3px double #1a1a1a; box-sizing: border-box;">
+        <div style="text-align: center; border-bottom: 1px solid #1a1a1a; padding-bottom: 10px; margin-bottom: 20px;">
+            <h1 style="margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 1px;">Certificate of Income Tax Deduction</h1>
+            <p style="margin: 3px 0; font-size: 12px; font-style: italic;">Issued under the Income Tax Ordinance</p>
+        </div>
+
+        <div style="margin-bottom: 20px; line-height: 1.4; font-size: 14px;">
+            <p>Certified that the sum of <strong>PKR <span id="cert-tax-total-val"></span></strong> has been deducted from the income of:</p>
+            <div style="margin: 10px 0; padding: 10px; border: 1px solid #e2e8f0; background: #f8fafc;">
+                <p style="margin: 0;"><strong>Name:</strong> MR HASSAN</p>
+                <p style="margin: 3px 0 0;"><strong>Period:</strong> <span id="cert-tax-period"></span></p>
+            </div>
+            <p id="cert-tax-summary-line" style="margin-top: 15px; font-size: 13px; line-height: 1.5; color: #334155; font-style: italic;"></p>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; table-layout: fixed;">
+            <thead>
+                <tr style="background: #f1f5f9; border: 1px solid #1a1a1a;">
+                    <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: left; width: 34%;">Month/Year</th>
+                    <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: right; width: 22%;">Salary Tax</th>
+                    <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: right; width: 22%;">Funds Tax</th>
+                    <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: right; width: 22%; font-size: 10px;">Total Deduction</th>
+                </tr>
+            </thead>
+            <tbody id="cert-tax-table-body">
+                <!-- Data rows here -->
+            </tbody>
+            <tfoot>
+                <tr style="background: #f1f5f9; font-weight: bold;">
+                    <td style="padding: 6px; border: 1px solid #1a1a1a;">TOTAL</td>
+                    <td id="cert-sum-salary-tax" style="padding: 6px; border: 1px solid #1a1a1a; text-align: right;"></td>
+                    <td id="cert-sum-funds-tax" style="padding: 6px; border: 1px solid #1a1a1a; text-align: right;"></td>
+                    <td id="cert-sum-total-tax" style="padding: 6px; border: 1px solid #1a1a1a; text-align: right;"></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 40px; font-size: 13px;">
+            <div style="text-align: center; width: 200px;">
+                <div style="border-top: 1px solid #1a1a1a; padding-top: 5px;">Authorized Signature</div>
+            </div>
+            <div style="text-align: center; width: 200px;">
+                <div style="border-top: 1px solid #1a1a1a; padding-top: 5px;">Date of Issue</div>
+                <p id="cert-issue-date" style="margin-top: 3px;"></p>
+            </div>
+        </div>
+
+        <div style="margin-top: 40px; font-size: 9px; color: #64748b; text-align: center;">
+            This is a computer generated certificate. Verified securely via Salary Hub Enterprise Protocol.
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
 

@@ -1437,6 +1437,245 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    const generateAuditReport = (targetYear) => {
+        const records = getRecords().sort((a,b) => new Date(a.month) - new Date(b.month));
+        const funds = getFunds().sort((a,b) => new Date(a.month) - new Date(b.month));
+        
+        const filteredRecords = targetYear === 'all' ? records : records.filter(r => r.month.startsWith(targetYear));
+        const filteredFunds = targetYear === 'all' ? funds : funds.filter(f => f.month.startsWith(targetYear));
+
+        if (filteredRecords.length === 0 && filteredFunds.length === 0) {
+            showToast('No data found for this period', 'error');
+            return;
+        }
+
+        let totalGross = 0, totalDeduct = 0, totalNet = 0, totalFunds = 0;
+        
+        // Populate stats
+        filteredRecords.forEach(r => {
+            totalGross += parseNumber(r.grossSalary);
+            totalDeduct += parseNumber(r.overallDeduction);
+            totalNet += parseNumber(r.netPayable);
+        });
+        
+        filteredFunds.forEach(f => {
+            totalFunds += (parseNumber(f.amount) - parseNumber(f.tax || 0));
+        });
+
+        document.getElementById('audit-total-gross').textContent = `PKR ${formatNumber(totalGross)}`;
+        document.getElementById('audit-total-deduct').textContent = `PKR ${formatNumber(totalDeduct)}`;
+        document.getElementById('audit-total-net').textContent = `PKR ${formatNumber(totalNet)}`;
+        document.getElementById('audit-total-funds').textContent = `PKR ${formatNumber(totalFunds)}`;
+        document.getElementById('audit-gen-date').textContent = `Report Generated: ${new Date().toLocaleDateString()}`;
+        document.getElementById('audit-report-subtitle').textContent = targetYear === 'all' ? 'All-Time Financial Performance' : `${targetYear} Financial Audit`;
+
+        const tableBody = document.getElementById('audit-table-body');
+        tableBody.innerHTML = '';
+
+        // Merge and sort for table
+        const allMonths = [...new Set([...filteredRecords, ...filteredFunds].map(x => x.month))].sort();
+        
+        allMonths.forEach(m => {
+            const r = filteredRecords.find(x => x.month === m);
+            const fList = filteredFunds.filter(x => x.month === m);
+            const fundSum = fList.reduce((acc, curr) => acc + (parseNumber(curr.amount) - parseNumber(curr.tax || 0)), 0);
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="padding: 8px; border-bottom: 1px solid #f1f5f9;">${formatShortMonth(m)}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #f1f5f9; text-align: right;">${r ? formatNumber(r.grossSalary) : '0'}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #f1f5f9; text-align: right; color: #ef4444;">${r ? formatNumber(r.overallDeduction) : '0'}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #f1f5f9; text-align: right; color: #3b82f6;">${r ? formatNumber(r.netPayable) : '0'}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #f1f5f9; text-align: right; color: #10b981;">${fundSum > 0 ? formatNumber(fundSum) : '0'}</td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+        const template = document.getElementById('audit-report-template');
+        template.style.display = 'block';
+
+        const opt = {
+            margin: 0.2,
+            filename: targetYear === 'all' ? 'AllTime_Financial_Summary.pdf' : `Financial_Audit_${targetYear}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(template).save().then(() => {
+            template.style.display = 'none';
+        });
+    };
+
+    document.getElementById('export-yearly-audit-btn')?.addEventListener('click', () => {
+        const year = filterYear.value;
+        if (year === 'all') {
+            showToast('Please select a year first', 'warning');
+        } else {
+            generateAuditReport(year);
+        }
+    });
+
+    document.getElementById('export-alltime-audit-btn')?.addEventListener('click', () => {
+        generateAuditReport('all');
+    });
+
+    document.getElementById('export-alltime-audit-btn')?.addEventListener('click', () => {
+        generateAuditReport('all');
+    });
+
+    const generateTaxCertificate = (mode, targetYear) => {
+        const records = getRecords().sort((a,b) => new Date(a.month) - new Date(b.month));
+        const funds = getFunds().sort((a,b) => new Date(a.month) - new Date(b.month));
+        
+        let filteredRecords = [];
+        let filteredFunds = [];
+        let subtitle = "";
+
+        if (mode === 'all') {
+            filteredRecords = records;
+            filteredFunds = funds;
+            subtitle = "All-Time Accumulative Tax Certificate";
+        } else if (mode === 'linear') {
+            filteredRecords = records.filter(r => r.month.startsWith(targetYear));
+            filteredFunds = funds.filter(f => f.month.startsWith(targetYear));
+            subtitle = `January ${targetYear} to December ${targetYear}`;
+        } else if (mode === 'fiscal') {
+            const startYear = parseInt(targetYear) - 1;
+            const startDate = `${startYear}-07`;
+            const endDate = `${targetYear}-06`;
+            filteredRecords = records.filter(r => r.month >= startDate && r.month <= endDate);
+            filteredFunds = funds.filter(f => f.month >= startDate && f.month <= endDate);
+            subtitle = `July ${startYear} to June ${targetYear}`;
+        }
+
+        if (filteredRecords.length === 0 && filteredFunds.length === 0) {
+            showToast('No tax data found for this period', 'error');
+            return;
+        }
+
+        let sumSalaryTax = 0, sumFundsTax = 0, sumGrossSalary = 0, sumGrossFunds = 0;
+        const tableBody = document.getElementById('cert-tax-table-body');
+        const tableHeader = document.querySelector('#tax-cert-template thead tr');
+        tableBody.innerHTML = '';
+
+        if (mode === 'all') {
+            tableHeader.innerHTML = `
+                <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: left; width: 40%;">Year</th>
+                <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: right; width: 20%;">Salary Tax</th>
+                <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: right; width: 20%;">Funds Tax</th>
+                <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: right; width: 20%;">Total Deduction</th>
+            `;
+
+            const years = [...new Set([...filteredRecords, ...filteredFunds].map(x => x.month.split('-')[0]))].sort();
+            years.forEach(y => {
+                const yearRecords = filteredRecords.filter(r => r.month.startsWith(y));
+                const yearFunds = filteredFunds.filter(f => f.month.startsWith(y));
+                
+                const sTax = yearRecords.reduce((acc, curr) => acc + parseNumber(curr.incomeTax), 0);
+                const fTax = yearFunds.reduce((acc, curr) => acc + parseNumber(curr.tax || 0), 0);
+                
+                sumSalaryTax += sTax;
+                sumFundsTax += fTax;
+                sumGrossSalary += yearRecords.reduce((acc, curr) => acc + parseNumber(curr.grossSalary), 0);
+                sumGrossFunds += yearFunds.reduce((acc, curr) => acc + parseNumber(curr.amount), 0);
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 10px; border: 1px solid #1a1a1a; font-weight: bold;">Full Year ${y}</td>
+                    <td style="padding: 10px; border: 1px solid #1a1a1a; text-align: right;">${formatNumber(sTax)}</td>
+                    <td style="padding: 10px; border: 1px solid #1a1a1a; text-align: right;">${formatNumber(fTax)}</td>
+                    <td style="padding: 10px; border: 1px solid #1a1a1a; text-align: right; font-weight: bold;">${formatNumber(sTax + fTax)}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        } else {
+            tableHeader.innerHTML = `
+                <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: left; width: 40%;">Month</th>
+                <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: right; width: 20%;">Salary Tax</th>
+                <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: right; width: 20%;">Funds Tax</th>
+                <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: right; width: 20%;">Total Deduction</th>
+            `;
+
+            const allMonths = [...new Set([...filteredRecords, ...filteredFunds].map(x => x.month))].sort();
+            allMonths.forEach(m => {
+                const r = filteredRecords.find(x => x.month === m);
+                const fList = filteredFunds.filter(x => x.month === m);
+                const sTax = r ? parseNumber(r.incomeTax) : 0;
+                const fTax = fList.reduce((acc, curr) => acc + parseNumber(curr.tax || 0), 0);
+                
+                sumSalaryTax += sTax;
+                sumFundsTax += fTax;
+                sumGrossSalary += r ? parseNumber(r.grossSalary) : 0;
+                sumGrossFunds += fList.reduce((acc, curr) => acc + parseNumber(curr.amount), 0);
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 10px; border: 1px solid #1a1a1a;">${formatMonth(m)}</td>
+                    <td style="padding: 10px; border: 1px solid #1a1a1a; text-align: right;">${formatNumber(sTax)}</td>
+                    <td style="padding: 10px; border: 1px solid #1a1a1a; text-align: right;">${formatNumber(fTax)}</td>
+                    <td style="padding: 10px; border: 1px solid #1a1a1a; text-align: right; font-weight: bold;">${formatNumber(sTax + fTax)}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        const totalTax = sumSalaryTax + sumFundsTax;
+        const totalGross = sumGrossSalary + sumGrossFunds;
+
+        document.getElementById('cert-sum-salary-tax').textContent = formatNumber(sumSalaryTax);
+        document.getElementById('cert-sum-funds-tax').textContent = formatNumber(sumFundsTax);
+        document.getElementById('cert-sum-total-tax').textContent = formatNumber(totalTax);
+        document.getElementById('cert-tax-total-val').textContent = formatNumber(totalTax);
+        document.getElementById('cert-tax-period').textContent = subtitle;
+        document.getElementById('cert-issue-date').textContent = new Date().toLocaleDateString();
+
+        // Narrative Summary
+        document.getElementById('cert-tax-summary-line').innerHTML = `
+            During this period, the individual earned a total gross income of <strong>PKR ${formatNumber(totalGross)}</strong>, 
+            comprising <strong>PKR ${formatNumber(sumGrossSalary)}</strong> from regular salary and 
+            <strong>PKR ${formatNumber(sumGrossFunds)}</strong> from managed funds, 
+            with a total tax deduction of <strong>PKR ${formatNumber(totalTax)}</strong>.
+        `;
+
+        const template = document.getElementById('tax-cert-template');
+        template.style.display = 'block';
+
+        const opt = {
+            margin: [0.5, 0.5, 0.5, 0.5],
+            filename: `Tax_Certificate_${targetYear}_${mode}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, logging: false, useCORS: true },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(template).save().then(() => {
+            template.style.display = 'none';
+        });
+    };
+
+    const taxModal = document.getElementById('tax-period-modal');
+    document.getElementById('export-tax-cert-btn')?.addEventListener('click', () => {
+        const years = [...new Set(getRecords().map(r => r.month.split('-')[0]))].sort((a,b) => b-a);
+        const sel = document.getElementById('tax-base-year');
+        sel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+        taxModal.classList.remove('hidden');
+    });
+
+    document.getElementById('close-tax-period-modal')?.addEventListener('click', () => taxModal.classList.add('hidden'));
+    document.getElementById('btn-tax-linear')?.addEventListener('click', () => {
+        generateTaxCertificate('linear', document.getElementById('tax-base-year').value);
+        taxModal.classList.add('hidden');
+    });
+    document.getElementById('btn-tax-fiscal')?.addEventListener('click', () => {
+        generateTaxCertificate('fiscal', document.getElementById('tax-base-year').value);
+        taxModal.classList.add('hidden');
+    });
+    document.getElementById('btn-tax-alltime')?.addEventListener('click', () => {
+        generateTaxCertificate('all', 'All');
+        taxModal.classList.add('hidden');
+    });
+
     // Final Boot
     initVault();
     updateDashboard();

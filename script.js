@@ -159,12 +159,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const dataView = document.getElementById('data-view');
     const dashboardCards = document.querySelector('.dashboard-cards');
 
-    const fundsTableBody = document.getElementById('funds-body');
+    const tabAttendance = document.getElementById('tab-attendance');
     const tabSalary = document.getElementById('tab-salary');
     const tabFunds = document.getElementById('tab-funds');
     const tabInsights = document.getElementById('tab-insights');
     const tabLogs = document.getElementById('tab-logs');
     
+    const attendanceSection = document.getElementById('attendance-section');
     const salarySection = document.getElementById('salary-section');
     const fundsSection = document.getElementById('funds-section');
     const insightsSection = document.getElementById('insights-section');
@@ -216,6 +217,12 @@ document.addEventListener('DOMContentLoaded', () => {
         absentDays: document.getElementById('absent-days'),
         leavesWithPay: document.getElementById('leaves-with-pay'),
         shortTime: document.getElementById('short-time'),
+        weeklyOffs: document.getElementById('weekly-offs'),
+        ghDays: document.getElementById('gh-days'),
+        leaveDays: document.getElementById('leave-days'),
+        cplDays: document.getElementById('cpl-days'),
+        withPayDays: document.getElementById('with-pay-days'),
+        actualWorkedDays: document.getElementById('actual-worked-days'),
         shortTimeAmount: document.getElementById('short-time-amount'),
         otTime: document.getElementById('ot-time'),
         otAmount: document.getElementById('ot-amount'),
@@ -234,7 +241,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const STORAGE_KEY = 'salary_analysis_records';
     const FUNDS_STORAGE_KEY = 'salary_funds_records';
     const LOGS_STORAGE_KEY = 'salary_activity_logs';
+    const ATTENDANCE_STORAGE_KEY = 'salary_attendance_records';
 
+    // Seed Data from Image (Jan 2024 - Mar 2026)
+    const SEED_ATTENDANCE = [
+        { month: '2024-01', totalDays: '31', actualWorkedDays: '27', weeklyOffs: '4', ghDays: '0', absentDays: '0', leaveDays: '0', cplDays: '0', withPayDays: '0' },
+        { month: '2024-02', totalDays: '29', actualWorkedDays: '23', weeklyOffs: '4', ghDays: '2', absentDays: '0', leaveDays: '0', cplDays: '0', withPayDays: '0' },
+        { month: '2024-03', totalDays: '31', actualWorkedDays: '27', weeklyOffs: '4', ghDays: '0', absentDays: '0', leaveDays: '0', cplDays: '0', withPayDays: '0' },
+        { month: '2024-04', totalDays: '30', actualWorkedDays: '25', weeklyOffs: '1', ghDays: '2', absentDays: '0', leaveDays: '0', cplDays: '2', withPayDays: '0' },
+        { month: '2024-05', totalDays: '31', actualWorkedDays: '24', weeklyOffs: '3', ghDays: '2', absentDays: '0', leaveDays: '2', cplDays: '0', withPayDays: '0' },
+        { month: '2024-06', totalDays: '30', actualWorkedDays: '14.09', weeklyOffs: '5', ghDays: '3', absentDays: '0', leaveDays: '3.91', cplDays: '4', withPayDays: '0' },
+        { month: '2024-07', totalDays: '31', actualWorkedDays: '21', weeklyOffs: '4', ghDays: '2', absentDays: '0', leaveDays: '4', cplDays: '0', withPayDays: '0' },
+        { month: '2024-08', totalDays: '31', actualWorkedDays: '24', weeklyOffs: '4', ghDays: '1', absentDays: '0', leaveDays: '2', cplDays: '0', withPayDays: '0' },
+        { month: '2024-09', totalDays: '30', actualWorkedDays: '23.54', weeklyOffs: '5', ghDays: '1', absentDays: '0', leaveDays: '0.46', cplDays: '0', withPayDays: '0' },
+        { month: '2024-10', totalDays: '31', actualWorkedDays: '23', weeklyOffs: '4', ghDays: '0', absentDays: '1.37', leaveDays: '2.63', cplDays: '0', withPayDays: '0' },
+        { month: '2024-11', totalDays: '30', actualWorkedDays: '23.43', weeklyOffs: '4', ghDays: '1', absentDays: '0.68', leaveDays: '0.89', cplDays: '0', withPayDays: '0' },
+        { month: '2024-12', totalDays: '31', actualWorkedDays: '23', weeklyOffs: '5', ghDays: '1', absentDays: '0', leaveDays: '2', cplDays: '0', withPayDays: '0' },
+        { month: '2025-01', totalDays: '31', actualWorkedDays: '25.88', weeklyOffs: '4', ghDays: '0', absentDays: '0', leaveDays: '1.12', cplDays: '0', withPayDays: '0' },
+        { month: '2025-02', totalDays: '28', actualWorkedDays: '23', weeklyOffs: '4', ghDays: '1', absentDays: '0', leaveDays: '0', cplDays: '0', withPayDays: '0' },
+        { month: '2025-03', totalDays: '31', actualWorkedDays: '23.69', weeklyOffs: '5', ghDays: '1', absentDays: '0', leaveDays: '1.31', cplDays: '0', withPayDays: '0' },
+        { month: '2025-04', totalDays: '30', actualWorkedDays: '20.6', weeklyOffs: '4', ghDays: '2', absentDays: '0', leaveDays: '1.90', cplDays: '0', withPayDays: '1.5' },
+        { month: '2025-05', totalDays: '31', actualWorkedDays: '21.88', weeklyOffs: '4', ghDays: '2', absentDays: '0', leaveDays: '3.12', cplDays: '0', withPayDays: '0' },
+        { month: '2025-06', totalDays: '30', actualWorkedDays: '11.83', weeklyOffs: '5', ghDays: '3', absentDays: '0', leaveDays: '10.17', cplDays: '0', withPayDays: '0' },
+        { month: '2025-07', totalDays: '31', actualWorkedDays: '22.9', weeklyOffs: '4', ghDays: '1', absentDays: '0', leaveDays: '3.1', cplDays: '0', withPayDays: '0' },
+        { month: '2025-08', totalDays: '31', actualWorkedDays: '24.41', weeklyOffs: '5', ghDays: '1', absentDays: '0', leaveDays: '0.59', cplDays: '0', withPayDays: '0' },
+        { month: '2025-09', totalDays: '30', actualWorkedDays: '21.75', weeklyOffs: '4', ghDays: '1', absentDays: '0', leaveDays: '3.25', cplDays: '0', withPayDays: '0' },
+        { month: '2025-10', totalDays: '31', actualWorkedDays: '25.34', weeklyOffs: '4', ghDays: '0', absentDays: '0', leaveDays: '1.66', cplDays: '0', withPayDays: '0' },
+        { month: '2025-11', totalDays: '30', actualWorkedDays: '24.07', weeklyOffs: '5', ghDays: '0', absentDays: '0', leaveDays: '0.93', cplDays: '0', withPayDays: '0' },
+        { month: '2025-12', totalDays: '31', actualWorkedDays: '21.48', weeklyOffs: '4', ghDays: '1', absentDays: '0', leaveDays: '4.52', cplDays: '0', withPayDays: '0' },
+        { month: '2026-01', totalDays: '31', actualWorkedDays: '24.46', weeklyOffs: '4', ghDays: '0', absentDays: '0', leaveDays: '2.54', cplDays: '0', withPayDays: '0' },
+        { month: '2026-02', totalDays: '28', actualWorkedDays: '20.88', weeklyOffs: '4', ghDays: '1', absentDays: '0', leaveDays: '0', cplDays: '2.12', withPayDays: '0' },
+        { month: '2026-03', totalDays: '31', actualWorkedDays: '22.65', weeklyOffs: '4', ghDays: '3', absentDays: '0', leaveDays: '1.35', cplDays: '0', withPayDays: '0' }
+    ];
+
+    if (!localStorage.getItem(ATTENDANCE_STORAGE_KEY)) {
+        localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(SEED_ATTENDANCE));
+    }
     const firebaseConfig = {
         apiKey: "AIzaSyDl-8p3Rf_r1SngmcTB_De8LWhv7X62kP4",
         authDomain: "hassan-salary.firebaseapp.com",
@@ -426,6 +468,35 @@ document.addEventListener('DOMContentLoaded', () => {
         return raw.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     };
 
+    const getAttendanceRecords = () => {
+        const raw = JSON.parse(localStorage.getItem(ATTENDANCE_STORAGE_KEY)) || [];
+        return raw.sort((a, b) => a.month.localeCompare(b.month));
+    };
+
+    const saveAttendanceRecord = (record) => {
+        const records = getAttendanceRecords();
+        const existingIndex = records.findIndex(r => r.month === record.month);
+        const action = existingIndex >= 0 ? 'EDIT' : 'ADD';
+
+        if (existingIndex >= 0) records[existingIndex] = record;
+        else records.push(record);
+        
+        records.sort((a, b) => a.month.localeCompare(b.month));
+        localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(records));
+        
+        updateDashboard();
+        addLog(action, 'ATTENDANCE', record.month);
+        showToast(`Attendance ${action === 'EDIT' ? 'Updated' : 'Added'} Successfully!`, 'success');
+    };
+
+    const deleteAttendanceRecord = (month) => {
+        const records = getAttendanceRecords().filter(r => r.month !== month);
+        localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(records));
+        updateDashboard();
+        addLog('DELETE', 'ATTENDANCE', month);
+        showToast('Attendance Record Deleted', 'success');
+    };
+
     const saveRecord = (record) => {
         const records = getRecords();
         const existingIndex = records.findIndex(r => r.month === record.month);
@@ -476,8 +547,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return isNaN(parsed) ? 0 : parsed;
     };
     const formatNumber = (num) => {
-        const val = parseNumber(num);
-        return new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val);
+        const val = Math.round(parseNumber(num));
+        return new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
     };
     const formatCurrency = (num) => `<small>PKR</small> ${new Intl.NumberFormat('en-US').format(Math.round(num))}`;
     
@@ -502,14 +573,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const dailyRate = salary / 26;
         const hourlyRate = dailyRate / 8;
 
-        inputs.workingDays.value = Math.max(0, 26 - absent);
-        
         const parseTime = (str) => {
             const p = str.split(':');
             return (parseInt(p[0]) || 0) + (parseInt(p[1]) || 0)/60 + (parseInt(p[2]) || 0)/3600;
         };
 
         const shortAmt = parseTime(inputs.shortTime.value) * hourlyRate;
+        inputs.shortTimeAmount.value = formatNumber(shortAmt);
+        
+        // Attendance Logic
+        const totalMonthDays = parseNumber(inputs.totalDays.value) || 26;
+        const offs = parseNumber(inputs.weeklyOffs.value) || 0;
+        const gh = parseNumber(inputs.ghDays.value) || 0;
+        const leave = parseNumber(inputs.leaveDays.value) || 0;
+        const abs = parseNumber(inputs.absentDays.value) || 0;
+        const cpl = parseNumber(inputs.cplDays.value) || 0;
+        const withPay = parseNumber(inputs.withPayDays.value) || 0;
+        
+        // Worked Days = Total - Offs - GH - Absent - Leave + CPL + WithPay
+        const actualWorked = totalMonthDays - offs - gh - abs - leave + cpl + withPay;
+        inputs.actualWorkedDays.value = actualWorked.toFixed(2);
+        inputs.workingDays.value = Math.max(0, totalMonthDays - absent); // Keeping legacy for compatibility
+
         inputs.shortTimeAmount.value = formatNumber(shortAmt);
 
         const otAmt = parseTime(inputs.otTime.value) * hourlyRate * 2;
@@ -591,6 +676,91 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dashStats.avgTotal) dashStats.avgTotal.innerHTML = formatCurrency(tNet/count);
         dashStats.avgReg.innerHTML = formatCurrency((tNet - tOT)/count);
         dashStats.avgOT.innerHTML = formatCurrency(tOT/count);
+
+        // Populate Dashboard Attendance Table (Truly Independent)
+        const attBody = document.getElementById('dash-attendance-body');
+        const attYearLabel = document.getElementById('att-view-year-label');
+        if (attBody) {
+            attBody.innerHTML = '';
+            attYearLabel.textContent = `YEAR: ${year === 'all' ? 'All-Time' : year}`;
+            
+            const attendanceRecords = getAttendanceRecords().sort((a,b) => new Date(a.month) - new Date(b.month));
+            const filteredAtt = year === 'all' ? attendanceRecords : attendanceRecords.filter(r => r.month.startsWith(year));
+
+            let dm=0, dw=0, doff=0, dg=0, da=0, dl=0, dc=0, dp=0;
+            
+            filteredAtt.forEach(r => {
+                const mDays = parseNumber(r.totalDays) || 30;
+                const worked = parseNumber(r.actualWorkedDays) || 0;
+                const offs = parseNumber(r.weeklyOffs) || 0;
+                const gh = parseNumber(r.ghDays) || 0;
+                const abs = parseNumber(r.absentDays) || 0;
+                const lve = parseNumber(r.leaveDays) || 0;
+                const cpl = parseNumber(r.cplDays) || 0;
+                const pay = parseNumber(r.withPayDays) || 0;
+                
+                dm += mDays; dw += worked; doff += offs; dg += gh; da += abs; dl += lve; dc += cpl; dp += pay;
+
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #f1f5f9';
+                tr.innerHTML = `
+                    <td style="padding: 8px; font-weight: bold; color: var(--text-primary);">${formatShortMonth(r.month)}</td>
+                    <td style="padding: 8px;">${mDays}</td>
+                    <td style="padding: 8px; background: #f0fdf4; font-weight: bold; color: #16a34a;">${worked.toFixed(2)}</td>
+                    <td style="padding: 8px;">${offs}</td>
+                    <td style="padding: 8px;">${gh}</td>
+                    <td style="padding: 8px;">${abs.toFixed(2)}</td>
+                    <td style="padding: 8px;">${lve.toFixed(2)}</td>
+                    <td style="padding: 8px; color: #10b981;">${cpl.toFixed(2)}</td>
+                    <td style="padding: 8px; color: #10b981;">${pay.toFixed(2)}</td>
+                    <td style="padding: 8px;">
+                        <div style="display: flex; gap: 5px; justify-content: center;">
+                            <button class="att-edit-btn" data-month="${r.month}" style="background: none; border: none; cursor: pointer; font-size: 0.9rem;">✏️</button>
+                            <button class="att-delete-btn" data-month="${r.month}" style="background: none; border: none; cursor: pointer; font-size: 0.9rem;">🗑️</button>
+                        </div>
+                    </td>
+                `;
+                attBody.appendChild(tr);
+            });
+
+            // Re-attach listeners
+            document.querySelectorAll('.att-edit-btn').forEach(btn => btn.addEventListener('click', () => {
+                const r = getAttendanceRecords().find(x => x.month === btn.dataset.month);
+                if (r) {
+                    document.getElementById('att-month').value = r.month;
+                    document.getElementById('att-total-days').value = r.totalDays;
+                    document.getElementById('att-weekly-offs').value = r.weeklyOffs;
+                    document.getElementById('att-gh-days').value = r.ghDays;
+                    document.getElementById('att-absent-days').value = r.absentDays;
+                    document.getElementById('att-leave-days').value = r.leaveDays;
+                    document.getElementById('att-cpl-days').value = r.cplDays;
+                    document.getElementById('att-with-pay-days').value = r.withPayDays;
+                    calculateAtt();
+                    attModal.classList.remove('hidden');
+                }
+            }));
+            document.querySelectorAll('.att-delete-btn').forEach(btn => btn.addEventListener('click', () => {
+                if (confirm('Delete this attendance record? (Salary record will remain untouched)')) {
+                    deleteAttendanceRecord(btn.dataset.month);
+                }
+            }));
+
+            document.getElementById('dash-att-total-m').textContent = dm;
+            document.getElementById('dash-att-total-w').textContent = dw.toFixed(2);
+            document.getElementById('dash-att-total-o').textContent = doff;
+            document.getElementById('dash-att-total-g').textContent = dg;
+            document.getElementById('dash-att-total-a').textContent = da.toFixed(2);
+            document.getElementById('dash-att-total-l').textContent = dl.toFixed(2);
+            document.getElementById('dash-att-total-c').textContent = dc.toFixed(2);
+            document.getElementById('dash-att-total-p').textContent = dp.toFixed(2);
+
+            // Populate Home Summary Card
+            document.getElementById('dash-stat-worked').innerHTML = `<small>Days</small> ${dw.toFixed(2)}`;
+            document.getElementById('dash-stat-total').textContent = dm;
+            document.getElementById('dash-stat-absent').textContent = da.toFixed(2);
+            document.getElementById('dash-stat-leave').textContent = dl.toFixed(2);
+            document.getElementById('dash-stat-cpl').textContent = (dc + dp).toFixed(2);
+        }
 
         renderFundsBreakdown(filteredFunds);
         renderFundsTable();
@@ -838,16 +1008,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${formatShortMonth(r.month)}</strong></td>
-                <td>${formatNumber(r.salary)}</td>
-                <td>${formatNumber(r.pfDeduction)}</td>
-                <td>${formatNumber(r.eobiDeduction)}</td>
-                <td>${formatNumber(r.incomeTax)}</td>
-                <td>${formatNumber(r.withoutPay)}</td>
-                <td class="deduction-text">${formatNumber(r.shortTimeAmount || 0)}</td>
-                <td class="deduction-text">${formatNumber(r.overallDeduction)}</td>
-                <td class="addition-text">${formatNumber(parseNumber(r.otAmount) || (parseNumber(r.grossSalary) - parseNumber(r.salary)))}</td>
-                <td class="addition-text">${formatNumber(r.grossSalary)}</td>
-                <td class="net-text">${formatNumber(r.netPayable)}</td>
+                <td>${formatNumber(Math.round(r.salary))}</td>
+                <td>${formatNumber(Math.round(r.pfDeduction))}</td>
+                <td>${formatNumber(Math.round(r.eobiDeduction))}</td>
+                <td>${formatNumber(Math.round(r.incomeTax))}</td>
+                <td>${formatNumber(Math.round(r.withoutPay))}</td>
+                <td class="deduction-text">${formatNumber(Math.round(r.shortTimeAmount || 0))}</td>
+                <td class="deduction-text">${formatNumber(Math.round(r.overallDeduction))}</td>
+                <td class="addition-text">${formatNumber(Math.round(parseNumber(r.otAmount) || (parseNumber(r.grossSalary) - parseNumber(r.salary))))}</td>
+                <td class="addition-text">${formatNumber(Math.round(r.grossSalary))}</td>
+                <td class="net-text">${formatNumber(Math.round(r.netPayable))}</td>
                 <td class="remarks-cell">${r.remarks || '-'}</td>
                 <td>
                     <div class="table-actions">
@@ -1112,8 +1282,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const switchTab = (tabId, sectionId) => {
-        const allTabs = [tabSalary, tabFunds, tabInsights, tabCompare, tabLogs];
-        const allSections = [salarySection, fundsSection, insightsSection, compareSection, logsSection];
+        const allTabs = [tabAttendance, tabSalary, tabFunds, tabInsights, tabCompare, tabLogs];
+        const allSections = [attendanceSection, salarySection, fundsSection, insightsSection, compareSection, logsSection];
         
         allTabs.forEach(t => t?.classList.remove('active'));
         allSections.forEach(s => s?.classList.add('d-none'));
@@ -1122,6 +1292,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById(sectionId).classList.remove('d-none');
     };
 
+    tabAttendance.addEventListener('click', () => switchTab('tab-attendance', 'attendance-section'));
     tabSalary.addEventListener('click', () => switchTab('tab-salary', 'salary-section'));
     tabFunds.addEventListener('click', () => switchTab('tab-funds', 'funds-section'));
     tabInsights.addEventListener('click', () => {
@@ -1674,6 +1845,127 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-tax-alltime')?.addEventListener('click', () => {
         generateTaxCertificate('all', 'All');
         taxModal.classList.add('hidden');
+    });
+
+    const generateAttendanceSummary = (targetYear) => {
+        const records = getAttendanceRecords().sort((a,b) => new Date(a.month) - new Date(b.month));
+        const filtered = targetYear === 'all' ? records : records.filter(r => r.month.startsWith(targetYear));
+
+        if (filtered.length === 0) {
+            showToast('No attendance records for this period', 'error');
+            return;
+        }
+
+        document.getElementById('att-summary-title').textContent = targetYear === 'all' ? 'Working Days Summary (All-Time)' : `Working Days of ${targetYear}`;
+        const tableBody = document.getElementById('att-summary-body');
+        tableBody.innerHTML = '';
+
+        let tMonth=0, tWorked=0, tOffs=0, tGH=0, tAbsent=0, tLeave=0, tCPL=0, tPay=0, tDays=0;
+
+        filtered.forEach(r => {
+            const mDays = parseNumber(r.totalDays) || 30;
+            const worked = parseNumber(r.actualWorkedDays) || 0;
+            const offs = parseNumber(r.weeklyOffs) || 0;
+            const gh = parseNumber(r.ghDays) || 0;
+            const abs = parseNumber(r.absentDays) || 0;
+            const lve = parseNumber(r.leaveDays) || 0;
+            const cpl = parseNumber(r.cplDays) || 0;
+            const pay = parseNumber(r.withPayDays) || 0;
+            const total = mDays;
+
+            tMonth += mDays; tWorked += worked; tOffs += offs; tGH += gh; 
+            tAbsent += abs; tLeave += lve; tCPL += cpl; tPay += pay; tDays += total;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="padding: 6px; border: 1px solid #16a34a; text-align: left;">${formatShortMonth(r.month)}</td>
+                <td style="padding: 6px; border: 1px solid #16a34a; text-align: center;">${mDays}</td>
+                <td style="padding: 6px; border: 1px solid #16a34a; text-align: center; font-weight: bold;">${worked.toFixed(2)}</td>
+                <td style="padding: 6px; border: 1px solid #16a34a; text-align: center;">${offs}</td>
+                <td style="padding: 6px; border: 1px solid #16a34a; text-align: center;">${gh}</td>
+                <td style="padding: 6px; border: 1px solid #16a34a; text-align: center;">${abs}</td>
+                <td style="padding: 6px; border: 1px solid #16a34a; text-align: center;">${lve}</td>
+                <td style="padding: 6px; border: 1px solid #16a34a; text-align: center;">${cpl}</td>
+                <td style="padding: 6px; border: 1px solid #16a34a; text-align: center;">${pay}</td>
+                <td style="padding: 6px; border: 1px solid #16a34a; text-align: center; font-weight: bold;">${total}</td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+        document.getElementById('att-total-month').textContent = tMonth;
+        document.getElementById('att-total-worked').textContent = tWorked.toFixed(2);
+        document.getElementById('att-total-offs').textContent = tOffs;
+        document.getElementById('att-total-gh').textContent = tGH;
+        document.getElementById('att-total-absent').textContent = tAbsent;
+        document.getElementById('att-total-leave').textContent = tLeave.toFixed(2);
+        document.getElementById('att-total-cpl').textContent = tCPL;
+        document.getElementById('att-total-pay').textContent = tPay;
+        document.getElementById('att-total-days').textContent = tDays;
+
+        const template = document.getElementById('attendance-summary-template');
+        template.style.display = 'block';
+
+        const opt = {
+            margin: 0.3,
+            filename: `Attendance_Summary_${targetYear}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, logging: false, useCORS: true },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(template).save().then(() => {
+            template.style.display = 'none';
+        });
+    };
+
+    document.getElementById('export-attendance-btn')?.addEventListener('click', () => {
+        const year = filterYear.value;
+        generateAttendanceSummary(year);
+    });
+
+    // Attendance Modal Logic
+    const attModal = document.getElementById('attendance-modal');
+    const attForm = document.getElementById('attendance-form');
+    const attMonthInput = document.getElementById('att-month');
+    const attInputs = ['att-total-days', 'att-weekly-offs', 'att-gh-days', 'att-absent-days', 'att-leave-days', 'att-cpl-days', 'att-with-pay-days'];
+    
+    const calculateAtt = () => {
+        const total = parseNumber(document.getElementById('att-total-days').value) || 0;
+        const offs = parseNumber(document.getElementById('att-weekly-offs').value) || 0;
+        const gh = parseNumber(document.getElementById('att-gh-days').value) || 0;
+        const abs = parseNumber(document.getElementById('att-absent-days').value) || 0;
+        const lve = parseNumber(document.getElementById('att-leave-days').value) || 0;
+        const cpl = parseNumber(document.getElementById('att-cpl-days').value) || 0;
+        const pay = parseNumber(document.getElementById('att-with-pay-days').value) || 0;
+        
+        const worked = total - offs - gh - abs - lve + cpl + pay;
+        document.getElementById('att-calc-worked').textContent = worked.toFixed(2);
+    };
+
+    document.getElementById('open-attendance-modal')?.addEventListener('click', () => {
+        attMonthInput.value = new Date().toISOString().slice(0, 7);
+        calculateAtt();
+        attModal.classList.remove('hidden');
+    });
+
+    attInputs.forEach(id => document.getElementById(id).addEventListener('input', calculateAtt));
+
+    attForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const data = {
+            month: attMonthInput.value,
+            totalDays: document.getElementById('att-total-days').value,
+            weeklyOffs: document.getElementById('att-weekly-offs').value,
+            ghDays: document.getElementById('att-gh-days').value,
+            absentDays: document.getElementById('att-absent-days').value,
+            leaveDays: document.getElementById('att-leave-days').value,
+            cplDays: document.getElementById('att-cpl-days').value,
+            withPayDays: document.getElementById('att-with-pay-days').value,
+            actualWorkedDays: document.getElementById('att-calc-worked').textContent
+        };
+        
+        saveAttendanceRecord(data);
+        attModal.classList.add('hidden');
     });
 
     // Final Boot

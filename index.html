@@ -155,7 +155,21 @@
                         <div>OT Avg: <span id="dash-avg-ot">0</span></div>
                     </div>
                 </div>
+
+                <div class="card stat-card att-card">
+                    <h3>Working Days Summary</h3>
+                    <div class="stat-main" id="dash-stat-worked" style="color: #10b981;">0</div>
+                    <div class="stat-subs">
+                        <div>Total Month Days: <span id="dash-stat-total">0</span></div>
+                        <div>Absent Days: <span id="dash-stat-absent" class="deduction-text">0</span></div>
+                        <div>Leave Days: <span id="dash-stat-leave">0</span></div>
+                        <div>CPL / Pay: <span id="dash-stat-cpl">0</span></div>
+                    </div>
+                </div>
             </section>
+
+            <!-- Attendance Summary Table moved to Tab -->
+            <div id="attendance-placeholder"></div>
 
             <!-- What-If Playground Section -->
             <section id="what-if-playground" class="simulator-section card dashboard-view-component"
@@ -208,14 +222,64 @@
             <!-- Data Table Section (Hidden by Default) -->
             <section id="data-view" class="d-none">
                 <div class="data-tabs">
-                    <button class="tab-btn active" id="tab-salary"><i>📄</i> Salary Records</button>
+                    <button class="tab-btn active" id="tab-attendance"><i>📅</i> Attendance Detail</button>
+                    <button class="tab-btn" id="tab-salary"><i>📄</i> Salary Records</button>
                     <button class="tab-btn" id="tab-funds"><i>💰</i> Managed Funds</button>
                     <button class="tab-btn" id="tab-insights"><i>📊</i> Visual Insights</button>
                     <button class="tab-btn" id="tab-compare"><i>⚖️</i> Compare Records</button>
                     <button class="tab-btn" id="tab-logs"><i>📜</i> Activity Logs</button>
                 </div>
 
-                <div id="salary-section">
+                <!-- New Attendance Section inside Data View -->
+                <div id="attendance-section" class="card dashboard-view-component" style="overflow-x: auto; border: 1px solid var(--card-border); padding: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #10b981; padding-bottom: 1rem;">
+                        <h3 style="margin: 0; color: #065f46; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.4rem;">📅</span> Monthly Days Detail
+                        </h3>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <button class="btn btn-primary" id="export-attendance-btn" style="background: #10b981; padding: 4px 12px; font-size: 0.8rem;">📅 Export Summary</button>
+                            <button class="btn btn-primary" id="open-attendance-modal" style="background: #059669; padding: 4px 12px; font-size: 0.8rem;">➕ Add Detail</button>
+                            <span style="font-size: 0.85rem; background: #10b981; color: #fff; padding: 4px 12px; border-radius: 20px; font-weight: bold;" id="att-view-year-label">YEAR: 2025</span>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 700px;">
+                            <thead>
+                                <tr style="background: #ecfdf5; color: #065f46; border-bottom: 1px solid #10b981;">
+                                    <th style="padding: 12px; text-align: center; width: 15%;">Month</th>
+                                    <th style="padding: 12px; text-align: center;">Total Days</th>
+                                    <th style="padding: 12px; text-align: center; background: #d1fae5;">Worked</th>
+                                    <th style="padding: 12px; text-align: center;">Offs</th>
+                                    <th style="padding: 12px; text-align: center;">GH</th>
+                                    <th style="padding: 12px; text-align: center;">Absent</th>
+                                    <th style="padding: 12px; text-align: center;">Leave</th>
+                                    <th style="padding: 12px; text-align: center; color: #10b981; font-weight: bold;">CPL</th>
+                                    <th style="padding: 12px; text-align: center; color: #10b981; font-weight: bold;">With Pay</th>
+                                    <th style="padding: 12px; text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dash-attendance-body">
+                                <!-- Live data injected here -->
+                            </tbody>
+                            <tfoot style="background: #f8fafc; font-weight: bold; border-top: 2px solid #10b981;">
+                                <tr>
+                                    <td style="padding: 12px; text-align: center;">YEARLY TOTAL</td>
+                                    <td id="dash-att-total-m" style="padding: 12px; text-align: center;">0</td>
+                                    <td id="dash-att-total-w" style="padding: 12px; text-align: center; background: #d1fae5;">0</td>
+                                    <td id="dash-att-total-o" style="padding: 12px; text-align: center;">0</td>
+                                    <td id="dash-att-total-g" style="padding: 12px; text-align: center;">0</td>
+                                    <td id="dash-att-total-a" style="padding: 12px; text-align: center;">0</td>
+                                    <td id="dash-att-total-l" style="padding: 12px; text-align: center;">0</td>
+                                    <td id="dash-att-total-c" style="padding: 12px; text-align: center;">0</td>
+                                    <td id="dash-att-total-p" style="padding: 12px; text-align: center;">0</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="salary-section" class="d-none">
                     <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
                         <button class="btn btn-outline" id="export-salary-btn">📊 Export Records</button>
                         <button class="btn btn-primary" id="export-yearly-audit-btn">📄 Yearly Audit</button>
@@ -400,8 +464,28 @@
                         <input type="text" id="short-time" value="00:00:00">
                     </div>
                     <div class="form-group">
-                        <label>Short Time Amount (Auto)</label>
-                        <input type="text" id="short-time-amount" class="auto-calc" readonly>
+                        <label>Weekly Off Days</label>
+                        <input type="number" id="weekly-offs" value="4">
+                    </div>
+                    <div class="form-group">
+                        <label>GH Days (Holidays)</label>
+                        <input type="number" id="gh-days" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Leave Days (Unpaid)</label>
+                        <input type="number" id="leave-days" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>CPL Days</label>
+                        <input type="number" id="cpl-days" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Days With Pay (Bonus)</label>
+                        <input type="number" id="with-pay-days" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Worked Days (Auto)</label>
+                        <input type="number" id="actual-worked-days" step="0.01" class="auto-calc" readonly>
                     </div>
                     <div class="form-group">
                         <label>OT Time (HH:MM:SS)</label>
@@ -761,6 +845,46 @@
 
     <!-- Firebase SDKs -->
     <!-- Official Income Tax Certificate Template -->
+    <!-- Attendance Summary Template -->
+    <div id="attendance-summary-template" style="display: none; padding: 25px; font-family: 'Arial', sans-serif; color: #1a1a1a; background: #fff; width: 800px; border: 1px solid #e2e8f0; box-sizing: border-box;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h2 id="att-summary-title" style="margin: 0; background: #dcfce7; padding: 10px; border: 1px solid #16a34a; font-size: 18px;">Working Days of 2025</h2>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed;">
+            <thead>
+                <tr style="background: #f0fdf4; border: 1px solid #16a34a;">
+                    <th style="padding: 6px; border: 1px solid #16a34a; width: 12%;">Month</th>
+                    <th style="padding: 6px; border: 1px solid #16a34a; width: 12%;">Total Month Days</th>
+                    <th style="padding: 6px; border: 1px solid #16a34a; width: 12%;">Worked Days</th>
+                    <th style="padding: 6px; border: 1px solid #16a34a; width: 12%;">Weekly off Days</th>
+                    <th style="padding: 6px; border: 1px solid #16a34a; width: 10%;">GH Days</th>
+                    <th style="padding: 6px; border: 1px solid #16a34a; width: 10%;">Absent Days</th>
+                    <th style="padding: 6px; border: 1px solid #16a34a; width: 10%;">Leave Days</th>
+                    <th style="padding: 6px; border: 1px solid #16a34a; width: 8%;">CPL</th>
+                    <th style="padding: 6px; border: 1px solid #16a34a; width: 8%;">With Pay</th>
+                    <th style="padding: 6px; border: 1px solid #16a34a; width: 12%;">Total Days</th>
+                </tr>
+            </thead>
+            <tbody id="att-summary-body">
+                <!-- Data injected here -->
+            </tbody>
+            <tfoot>
+                <tr style="background: #f0fdf4; font-weight: bold; border: 1px solid #16a34a;">
+                    <td style="padding: 6px; border: 1px solid #16a34a;">Total</td>
+                    <td id="att-total-month" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="att-total-worked" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="att-total-offs" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="att-total-gh" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="att-total-absent" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="att-total-leave" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="att-total-cpl" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="att-total-pay" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="att-total-days" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
     <div id="tax-cert-template" style="display: none; padding: 25px; font-family: 'Times New Roman', serif; color: #1a1a1a; background: #fff; width: 700px; border: 3px double #1a1a1a; box-sizing: border-box;">
         <div style="text-align: center; border-bottom: 1px solid #1a1a1a; padding-bottom: 10px; margin-bottom: 20px;">
             <h1 style="margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 1px;">Certificate of Income Tax Deduction</h1>
@@ -810,6 +934,62 @@
 
         <div style="margin-top: 40px; font-size: 9px; color: #64748b; text-align: center;">
             This is a computer generated certificate. Verified securely via Salary Hub Enterprise Protocol.
+        </div>
+    </div>
+
+    <!-- Dedicated Attendance Entry Modal -->
+    <div id="attendance-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 500px; border-top: 5px solid #10b981;">
+            <div class="modal-header">
+                <h2 style="color: #065f46;">📅 Log Monthly Days</h2>
+                <button class="close-modal">✕</button>
+            </div>
+            <form id="attendance-form">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Select Month</label>
+                        <input type="month" id="att-month" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Total Month Days</label>
+                        <input type="number" id="att-total-days" value="31" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Weekly Offs</label>
+                        <input type="number" id="att-weekly-offs" value="4">
+                    </div>
+                    <div class="form-group">
+                        <label>GH Days</label>
+                        <input type="number" id="att-gh-days" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Absent Days</label>
+                        <input type="number" id="att-absent-days" value="0" step="0.5">
+                    </div>
+                    <div class="form-group">
+                        <label>Leave Days (Unpaid)</label>
+                        <input type="number" id="att-leave-days" value="0" step="0.5">
+                    </div>
+                    <div class="form-group">
+                        <label>CPL Days</label>
+                        <input type="number" id="att-cpl-days" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>With Pay Days</label>
+                        <input type="number" id="att-with-pay-days" value="0">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2; background: #f0fdf4; padding: 1rem; border-radius: 8px; border: 1px solid #10b981;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label style="margin: 0; color: #065f46; font-weight: bold;">Calculated Worked Days:</label>
+                            <span id="att-calc-worked" style="font-size: 1.5rem; font-weight: 800; color: #16a34a;">0.00</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline close-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="background: #10b981;">Save Attendance</button>
+                </div>
+            </form>
         </div>
     </div>
 

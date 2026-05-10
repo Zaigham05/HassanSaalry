@@ -267,14 +267,11 @@ body {
 @media (min-width: 1280px) {
     .dashboard-cards {
         display: grid;
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 2rem;
     }
-    .dashboard-cards .stat-card:nth-child(-n+3) {
-        grid-column: span 2;
-    }
-    .dashboard-cards .stat-card:nth-child(n+4) {
-        grid-column: span 3;
+    .dashboard-cards .stat-card {
+        grid-column: span 1 !important;
     }
 }
 
@@ -328,6 +325,7 @@ body {
 .net-card::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
 .avg-card::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
 .att-card::before { background: linear-gradient(90deg, #10b981, #34d399); }
+.leave-card::before { background: linear-gradient(90deg, #6366f1, #818cf8); }
 
 .stat-card h3 {
     font-size: 0.75rem;

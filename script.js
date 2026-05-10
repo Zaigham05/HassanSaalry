@@ -1,3 +1,48 @@
+// --- Global Utility Helpers ---
+window.parseNumber = (val) => {
+    if (!val || val === 'NaN') return 0;
+    if (typeof val === 'number') return val;
+    const cleaned = val.toString().replace(/[^0-9.-]/g, '');
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
+};
+window.formatNumber = (num) => {
+    const val = Math.round(window.parseNumber(num));
+    return new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
+};
+window.formatCurrency = (num) => `<small>PKR</small> ${new Intl.NumberFormat('en-US').format(Math.round(num))}`;
+window.formatMonth = (monthStr) => {
+    if (!monthStr) return '';
+    const [y, m] = monthStr.split('-');
+    const date = new Date(y, m - 1);
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+};
+window.formatShortMonth = (monthStr) => {
+    if (!monthStr) return '';
+    const [y, m] = monthStr.split('-');
+    const date = new Date(y, m - 1);
+    return date.toLocaleString('default', { month: 'short', year: '2-digit' }).toUpperCase();
+};
+
+window.calculateAtt = () => {
+    try {
+        const total = window.parseNumber(document.getElementById('att-total-days')?.value) || 0;
+        const offs = window.parseNumber(document.getElementById('att-weekly-offs')?.value) || 0;
+        const gh = window.parseNumber(document.getElementById('att-gh-days')?.value) || 0;
+        const abs = window.parseNumber(document.getElementById('att-absent-days')?.value) || 0;
+        const casual = window.parseNumber(document.getElementById('att-casual-leaves')?.value) || 0;
+        const sick = window.parseNumber(document.getElementById('att-sick-leaves')?.value) || 0;
+        const annual = window.parseNumber(document.getElementById('att-annual-leaves')?.value) || 0;
+        const cpl = window.parseNumber(document.getElementById('att-cpl-days')?.value) || 0;
+        const unp = window.parseNumber(document.getElementById('att-leave-days')?.value) || 0;
+        
+        // Residual Worked Days = Total - All entries
+        const worked = total - (offs + gh + abs + casual + sick + annual + cpl + unp);
+        const display = document.getElementById('att-calc-worked');
+        if (display) display.textContent = Math.max(0, worked).toFixed(2);
+    } catch (e) { console.error("Global Calc Error:", e); }
+};
+
 // --- Global Security Helpers ---
 window.currentPin = localStorage.getItem('vault_pin') || '';
 window.enteredPin = '';
@@ -154,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const form = document.getElementById('salary-form');
     const recordsTableBody = document.getElementById('records-body');
+    const fundsTableBody = document.getElementById('funds-body');
     const statCount = document.getElementById('stat-count');
     const toggleDataBtn = document.getElementById('toggle-data-btn');
     const dataView = document.getElementById('data-view');
@@ -538,35 +584,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- Calculations ---
-    const parseNumber = (val) => {
-        if (!val || val === 'NaN') return 0;
-        if (typeof val === 'number') return val;
-        const cleaned = val.toString().replace(/[^0-9.-]/g, '');
-        const parsed = parseFloat(cleaned);
-        return isNaN(parsed) ? 0 : parsed;
-    };
-    const formatNumber = (num) => {
-        const val = Math.round(parseNumber(num));
-        return new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
-    };
-    const formatCurrency = (num) => `<small>PKR</small> ${new Intl.NumberFormat('en-US').format(Math.round(num))}`;
+    // --- Calculations (Utilities moved to global scope) ---
     
-    const formatMonth = (monthStr) => {
-        if (!monthStr) return '';
-        const [y, m] = monthStr.split('-');
-        const date = new Date(y, m - 1);
-        return date.toLocaleString('default', { month: 'long', year: 'numeric' });
-    };
-
-    const formatShortMonth = (monthStr) => {
-        if (!monthStr) return '';
-        const [y, m] = monthStr.split('-');
-        const date = new Date(y, m - 1);
-        const mon = date.toLocaleString('default', { month: 'short' });
-        return `${mon}-${y.toString().slice(-2)}`;
-    };
-
     const calculate = () => {
         const salary = parseNumber(inputs.salary.value);
         const absent = parseNumber(inputs.absentDays.value) || 0;
@@ -625,6 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- UI Rendering ---
     const updateDashboard = () => {
+        try {
         const records = getRecords();
         const funds = getFunds();
         const year = filterYear.value;
@@ -686,34 +706,41 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const attendanceRecords = getAttendanceRecords().sort((a,b) => new Date(a.month) - new Date(b.month));
             const filteredAtt = year === 'all' ? attendanceRecords : attendanceRecords.filter(r => r.month.startsWith(year));
-
-            let dm=0, dw=0, doff=0, dg=0, da=0, dl=0, dc=0, dp=0;
+            let dm=0, dw=0, doff=0, dg=0, da=0, dcas=0, dsik=0, dann=0, duni=0, dc=0;
             
             filteredAtt.forEach(r => {
-                const mDays = parseNumber(r.totalDays) || 30;
+                const mDays = parseNumber(r.totalDays) || 0;
                 const worked = parseNumber(r.actualWorkedDays) || 0;
                 const offs = parseNumber(r.weeklyOffs) || 0;
                 const gh = parseNumber(r.ghDays) || 0;
                 const abs = parseNumber(r.absentDays) || 0;
-                const lve = parseNumber(r.leaveDays) || 0;
-                const cpl = parseNumber(r.cplDays) || 0;
-                const pay = parseNumber(r.withPayDays) || 0;
-                
-                dm += mDays; dw += worked; doff += offs; dg += gh; da += abs; dl += lve; dc += cpl; dp += pay;
+                const lve = parseNumber(r.leaveDays || 0);
+                const cas = parseNumber(r.casualLeaves || 0);
+                const sik = parseNumber(r.sickLeaves || 0);
+                const ann = parseNumber(r.annualLeaves || 0);
+                const cpl = parseNumber(r.cplDays || 0);
+                const unpaid = abs + lve;
+                const withPay = cas + sik + ann;
+
+                dm += mDays; dw += worked; doff += offs; dg += gh; da += abs; duni += lve; dcas += cas; dsik += sik; dann += ann; dc += cpl;
 
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid #f1f5f9';
                 tr.innerHTML = `
-                    <td style="padding: 8px; font-weight: bold; color: var(--text-primary);">${formatShortMonth(r.month)}</td>
-                    <td style="padding: 8px;">${mDays}</td>
-                    <td style="padding: 8px; background: #f0fdf4; font-weight: bold; color: #16a34a;">${worked.toFixed(2)}</td>
-                    <td style="padding: 8px;">${offs}</td>
-                    <td style="padding: 8px;">${gh}</td>
-                    <td style="padding: 8px;">${abs.toFixed(2)}</td>
-                    <td style="padding: 8px;">${lve.toFixed(2)}</td>
-                    <td style="padding: 8px; color: #10b981;">${cpl.toFixed(2)}</td>
-                    <td style="padding: 8px; color: #10b981;">${pay.toFixed(2)}</td>
-                    <td style="padding: 8px;">
+                    <td style="padding: 12px; text-align: center;">${formatShortMonth(r.month)}</td>
+                    <td style="padding: 12px; text-align: center;">${mDays}</td>
+                    <td style="padding: 12px; text-align: center; background: #f0fdf4; font-weight: bold;">${worked.toFixed(2)}</td>
+                    <td style="padding: 12px; text-align: center;">${offs}</td>
+                    <td style="padding: 12px; text-align: center;">${gh}</td>
+                    <td style="padding: 12px; text-align: center;">${abs.toFixed(2)}</td>
+                    <td style="padding: 12px; text-align: center;">${lve.toFixed(2)}</td>
+                    <td style="padding: 12px; text-align: center;">${cas.toFixed(2)}</td>
+                    <td style="padding: 12px; text-align: center;">${sik.toFixed(2)}</td>
+                    <td style="padding: 12px; text-align: center;">${ann.toFixed(2)}</td>
+                    <td style="padding: 12px; text-align: center;">${unpaid.toFixed(2)}</td>
+                    <td style="padding: 12px; text-align: center; color: #10b981; font-weight: bold;">${cpl.toFixed(2)}</td>
+                    <td style="padding: 12px; text-align: center; color: #10b981; font-weight: bold;">${withPay.toFixed(2)}</td>
+                    <td style="padding: 12px; text-align: center;">
                         <div style="display: flex; gap: 5px; justify-content: center;">
                             <button class="att-edit-btn" data-month="${r.month}" style="background: none; border: none; cursor: pointer; font-size: 0.9rem;">✏️</button>
                             <button class="att-delete-btn" data-month="${r.month}" style="background: none; border: none; cursor: pointer; font-size: 0.9rem;">🗑️</button>
@@ -732,39 +759,124 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('att-weekly-offs').value = r.weeklyOffs;
                     document.getElementById('att-gh-days').value = r.ghDays;
                     document.getElementById('att-absent-days').value = r.absentDays;
-                    document.getElementById('att-leave-days').value = r.leaveDays;
-                    document.getElementById('att-cpl-days').value = r.cplDays;
-                    document.getElementById('att-with-pay-days').value = r.withPayDays;
+                    document.getElementById('att-casual-leaves').value = r.casualLeaves || 0;
+                    document.getElementById('att-sick-leaves').value = r.sickLeaves || 0;
+                    document.getElementById('att-annual-leaves').value = r.annualLeaves || 0;
+                    document.getElementById('att-leave-days').value = r.leaveDays || 0;
+                    document.getElementById('att-cpl-days').value = r.cplDays || 0;
                     calculateAtt();
                     attModal.classList.remove('hidden');
                 }
             }));
             document.querySelectorAll('.att-delete-btn').forEach(btn => btn.addEventListener('click', () => {
-                if (confirm('Delete this attendance record? (Salary record will remain untouched)')) {
-                    deleteAttendanceRecord(btn.dataset.month);
-                }
+                deleteTarget = { type: 'attendance', id: btn.dataset.month };
+                const modal = document.getElementById('delete-modal');
+                modal.querySelector('p').textContent = 'Delete this attendance record? (Salary record will remain untouched)';
+                modal.classList.remove('hidden');
             }));
 
-            document.getElementById('dash-att-total-m').textContent = dm;
-            document.getElementById('dash-att-total-w').textContent = dw.toFixed(2);
-            document.getElementById('dash-att-total-o').textContent = doff;
-            document.getElementById('dash-att-total-g').textContent = dg;
-            document.getElementById('dash-att-total-a').textContent = da.toFixed(2);
-            document.getElementById('dash-att-total-l').textContent = dl.toFixed(2);
-            document.getElementById('dash-att-total-c').textContent = dc.toFixed(2);
-            document.getElementById('dash-att-total-p').textContent = dp.toFixed(2);
+            const setEl = (id, txt, isHTML = false) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (isHTML) el.innerHTML = txt;
+                    else el.textContent = txt;
+                }
+            };
+
+            setEl('dash-att-total-m', dm);
+            setEl('dash-att-total-w', dw.toFixed(2));
+            setEl('dash-att-total-o', doff);
+            setEl('dash-att-total-g', dg);
+            setEl('dash-att-total-a', da.toFixed(2));
+            setEl('dash-att-total-l', duni.toFixed(2));
+            setEl('dash-att-total-cas', dcas.toFixed(2));
+            setEl('dash-att-total-sik', dsik.toFixed(2));
+            setEl('dash-att-total-ann', dann.toFixed(2));
+            setEl('dash-att-total-uni', (da + duni).toFixed(2));
+            setEl('dash-att-total-c', dc.toFixed(2));
+            setEl('dash-att-total-p', (dcas + dsik + dann).toFixed(2));
 
             // Populate Home Summary Card
-            document.getElementById('dash-stat-worked').innerHTML = `<small>Days</small> ${dw.toFixed(2)}`;
-            document.getElementById('dash-stat-total').textContent = dm;
-            document.getElementById('dash-stat-absent').textContent = da.toFixed(2);
-            document.getElementById('dash-stat-leave').textContent = dl.toFixed(2);
-            document.getElementById('dash-stat-cpl').textContent = (dc + dp).toFixed(2);
+            setEl('dash-stat-worked', `<small>Days</small> ${dw.toFixed(2)}`, true);
+            setEl('dash-stat-total', dm);
+            setEl('dash-stat-absent', da.toFixed(2));
+            setEl('dash-stat-leave', duni.toFixed(2));
+            setEl('dash-stat-cpl', dc.toFixed(2));
+
+            // --- Leave Balance Logic (Hybrid Anniversary Logic) ---
+            const joiningDate = new Date('2023-12-28');
+            const today = new Date();
+            
+            const getAnniversaryYear = (date) => {
+                const year = date.getFullYear();
+                const annThisYear = new Date(year, 11, 28);
+                return (date < annThisYear) ? year - 1 : year;
+            };
+
+            const currentAnnYear = getAnniversaryYear(today);
+        const currentCycleStart = new Date(currentAnnYear, 11, 28);
+            
+            // 1. Accrual Calculation
+            let totalYears = today.getFullYear() - joiningDate.getFullYear();
+            if (today.getMonth() < 11 || (today.getMonth() == 11 && today.getDate() < 28)) totalYears--;
+            totalYears = Math.max(0, totalYears);
+
+            // ANNUAL: Fixed Yearly (14/yr, Unlocks after 1 Year, Cap 28)
+            // Joined Dec 2023 -> Unlocks Dec 2024 (14) -> Dec 2025 (28)
+            const annualAccruedTotal = totalYears < 1 ? 0 : Math.min(totalYears * 14, 28);
+            
+            let monthsInCycle = (today.getFullYear() - currentCycleStart.getFullYear()) * 12 + (today.getMonth() - currentCycleStart.getMonth());
+            if (today.getDate() < 28) monthsInCycle--;
+            monthsInCycle = Math.max(0, monthsInCycle);
+
+            // CASUAL/SICK: Resetting (10/yr and 8/yr respectively, Reset Dec 28)
+            const casualAccruedCycle = monthsInCycle * 0.8333333333333334;
+            const sickAccruedCycle = monthsInCycle * 0.6666666666666666;
+
+            let casualUsedInCycle = 0, sickUsedInCycle = 0, annualUsedTotal = 0, cplUsedTotal = 0;
+            let totalUsedOverall = 0;
+
+            attendanceRecords.forEach(r => {
+                const rDate = new Date(r.month + '-01');
+                if (rDate >= joiningDate) {
+                    const c = parseFloat(r.casualLeaves || 0);
+                    const s = parseFloat(r.sickLeaves || 0);
+                    const a = parseFloat(r.annualLeaves || 0);
+                    const cp = parseFloat(r.cplDays || 0);
+                    const un = parseFloat(r.leaveDays || 0);
+
+                    // Map legacy leaveDays to sick if other fields are empty? 
+                    // No, let's just count them in totalUsedOverall for transparency
+                    totalUsedOverall += (c + s + a + cp + un);
+                    annualUsedTotal += a;
+                    cplUsedTotal += cp;
+
+                    if (rDate >= currentCycleStart) {
+                        casualUsedInCycle += c;
+                        sickUsedInCycle += s;
+                    }
+                }
+            });
+
+            const casualBal = Math.max(0, casualAccruedCycle - casualUsedInCycle);
+            const sickBal = Math.max(0, sickAccruedCycle - sickUsedInCycle);
+            const annualBal = Math.max(0, annualAccruedTotal - annualUsedTotal);
+            const netBalance = casualBal + sickBal + annualBal;
+
+            setEl('dash-leave-balance', `<small>Bal</small> ${netBalance.toFixed(1)}`, true);
+            setEl('dash-leave-casual', `${casualAccruedCycle.toFixed(1)} | ${casualUsedInCycle.toFixed(1)} | ${casualBal.toFixed(1)}`);
+            setEl('dash-leave-sick', `${sickAccruedCycle.toFixed(1)} | ${sickUsedInCycle.toFixed(1)} | ${sickBal.toFixed(1)}`);
+            setEl('dash-leave-annual', `${annualAccruedTotal.toFixed(1)} | ${annualUsedTotal.toFixed(1)} | ${annualBal.toFixed(1)}`);
+            setEl('dash-leave-cpl', cplUsedTotal.toFixed(1));
+            // ---------------------------
         }
 
         renderFundsBreakdown(filteredFunds);
         renderFundsTable();
-        if (!insightsSection.classList.contains('d-none')) renderCharts();
+        if (insightsSection && !insightsSection.classList.contains('d-none')) renderCharts();
+        } catch (err) {
+            console.error("Dashboard Update Error:", err);
+        }
     };
 
     const renderFundsTable = () => {
@@ -1008,16 +1120,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${formatShortMonth(r.month)}</strong></td>
-                <td>${formatNumber(Math.round(r.salary))}</td>
-                <td>${formatNumber(Math.round(r.pfDeduction))}</td>
-                <td>${formatNumber(Math.round(r.eobiDeduction))}</td>
-                <td>${formatNumber(Math.round(r.incomeTax))}</td>
-                <td>${formatNumber(Math.round(r.withoutPay))}</td>
-                <td class="deduction-text">${formatNumber(Math.round(r.shortTimeAmount || 0))}</td>
-                <td class="deduction-text">${formatNumber(Math.round(r.overallDeduction))}</td>
-                <td class="addition-text">${formatNumber(Math.round(parseNumber(r.otAmount) || (parseNumber(r.grossSalary) - parseNumber(r.salary))))}</td>
-                <td class="addition-text">${formatNumber(Math.round(r.grossSalary))}</td>
-                <td class="net-text">${formatNumber(Math.round(r.netPayable))}</td>
+                <td>${formatNumber(r.salary)}</td>
+                <td>${formatNumber(r.pfDeduction)}</td>
+                <td>${formatNumber(r.eobiDeduction)}</td>
+                <td>${formatNumber(r.incomeTax)}</td>
+                <td>${formatNumber(r.withoutPay)}</td>
+                <td class="deduction-text">${formatNumber(r.shortTimeAmount || 0)}</td>
+                <td class="deduction-text">${formatNumber(r.overallDeduction)}</td>
+                <td class="addition-text">${formatNumber(parseNumber(r.otAmount) || (parseNumber(r.grossSalary) - parseNumber(r.salary)))}</td>
+                <td class="addition-text">${formatNumber(r.grossSalary)}</td>
+                <td class="net-text">${formatNumber(r.netPayable)}</td>
                 <td class="remarks-cell">${r.remarks || '-'}</td>
                 <td>
                     <div class="table-actions">
@@ -1221,27 +1333,58 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('confirm-delete-btn').addEventListener('click', () => {
-        if (!deleteTarget) return;
-        if (deleteTarget.type === 'record') {
-            const records = getRecords().filter(r => r.month !== deleteTarget.id);
-            if (db) db.ref('salary_records/' + deleteTarget.id.replace('-', '_')).remove();
-            else {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-                renderTable();
-                updateDashboard();
-            }
-            addLog('DELETE', 'SALARY', deleteTarget.id);
-        } else {
-            const funds = getFunds().filter(f => f.id != deleteTarget.id);
-            if (db) db.ref('funds_records/' + deleteTarget.id).remove();
-            else {
-                localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(funds));
-                updateDashboard();
-            }
-            addLog('DELETE', 'FUND', deleteTarget.id);
+        if (!deleteTarget) {
+            deleteModal.classList.add('hidden');
+            return;
         }
+        
+        const type = deleteTarget.type;
+        const id = deleteTarget.id;
+        
+        // Close modal first for responsiveness
         deleteModal.classList.add('hidden');
-        showToast('Record Deleted Successfully', 'success');
+        
+        try {
+            if (type === 'record') {
+                const records = getRecords().filter(r => r.month !== id);
+                if (db) db.ref('salary_records/' + id.replace('-', '_')).remove();
+                else {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+                    renderTable();
+                    updateDashboard();
+                }
+                addLog('DELETE', 'SALARY', id);
+                showToast('Salary Record Deleted', 'success');
+            } else if (type === 'attendance') {
+                deleteAttendanceRecord(id);
+            } else if (type === 'attendance_all') {
+                localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify([]));
+                updateDashboard();
+                addLog('DELETE', 'ATTENDANCE_ALL', 'ALL');
+                showToast('All Attendance Records Deleted', 'success');
+            } else {
+                const funds = getFunds().filter(f => f.id != id);
+                if (db) db.ref('funds_records/' + id).remove();
+                else {
+                    localStorage.setItem(FUNDS_STORAGE_KEY, JSON.stringify(funds));
+                    updateDashboard();
+                }
+                addLog('DELETE', 'FUND', id);
+                showToast('Fund Record Deleted', 'success');
+            }
+        } catch (err) {
+            console.error("Deletion Error:", err);
+            showToast('Error during deletion', 'error');
+        }
+        
+        deleteTarget = null;
+    });
+
+    document.getElementById('delete-all-attendance-btn')?.addEventListener('click', () => {
+        deleteTarget = { type: 'attendance_all' };
+        const modal = document.getElementById('delete-modal');
+        modal.querySelector('p').textContent = 'Are you sure you want to delete ALL attendance records? This action cannot be undone.';
+        modal.classList.remove('hidden');
     });
 
     document.getElementById('cancel-delete').addEventListener('click', () => deleteModal.classList.add('hidden'));
@@ -1290,6 +1433,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         document.getElementById(tabId).classList.add('active');
         document.getElementById(sectionId).classList.remove('d-none');
+        updateDashboard(); // Force refresh on tab switch
     };
 
     tabAttendance.addEventListener('click', () => switchTab('tab-attendance', 'attendance-section'));
@@ -1892,15 +2036,15 @@ document.addEventListener('DOMContentLoaded', () => {
             tableBody.appendChild(tr);
         });
 
-        document.getElementById('att-total-month').textContent = tMonth;
-        document.getElementById('att-total-worked').textContent = tWorked.toFixed(2);
-        document.getElementById('att-total-offs').textContent = tOffs;
-        document.getElementById('att-total-gh').textContent = tGH;
-        document.getElementById('att-total-absent').textContent = tAbsent;
-        document.getElementById('att-total-leave').textContent = tLeave.toFixed(2);
-        document.getElementById('att-total-cpl').textContent = tCPL;
-        document.getElementById('att-total-pay').textContent = tPay;
-        document.getElementById('att-total-days').textContent = tDays;
+        document.getElementById('sum-att-total-month').textContent = tMonth;
+        document.getElementById('sum-att-total-worked').textContent = tWorked.toFixed(2);
+        document.getElementById('sum-att-total-offs').textContent = tOffs;
+        document.getElementById('sum-att-total-gh').textContent = tGH;
+        document.getElementById('sum-att-total-absent').textContent = tAbsent;
+        document.getElementById('sum-att-total-leave').textContent = tLeave.toFixed(2);
+        document.getElementById('sum-att-total-cpl').textContent = tCPL;
+        document.getElementById('sum-att-total-pay').textContent = tPay;
+        document.getElementById('sum-att-total-days').textContent = tDays;
 
         const template = document.getElementById('attendance-summary-template');
         template.style.display = 'block';
@@ -1923,24 +2067,19 @@ document.addEventListener('DOMContentLoaded', () => {
         generateAttendanceSummary(year);
     });
 
-    // Attendance Modal Logic
+    // Attendance Modal Logic (Calculation moved to global scope)
     const attModal = document.getElementById('attendance-modal');
     const attForm = document.getElementById('attendance-form');
     const attMonthInput = document.getElementById('att-month');
-    const attInputs = ['att-total-days', 'att-weekly-offs', 'att-gh-days', 'att-absent-days', 'att-leave-days', 'att-cpl-days', 'att-with-pay-days'];
+    const attInputs = ['att-total-days', 'att-weekly-offs', 'att-gh-days', 'att-absent-days', 'att-casual-leaves', 'att-sick-leaves', 'att-annual-leaves', 'att-cpl-days', 'att-leave-days'];
     
-    const calculateAtt = () => {
-        const total = parseNumber(document.getElementById('att-total-days').value) || 0;
-        const offs = parseNumber(document.getElementById('att-weekly-offs').value) || 0;
-        const gh = parseNumber(document.getElementById('att-gh-days').value) || 0;
-        const abs = parseNumber(document.getElementById('att-absent-days').value) || 0;
-        const lve = parseNumber(document.getElementById('att-leave-days').value) || 0;
-        const cpl = parseNumber(document.getElementById('att-cpl-days').value) || 0;
-        const pay = parseNumber(document.getElementById('att-with-pay-days').value) || 0;
-        
-        const worked = total - offs - gh - abs - lve + cpl + pay;
-        document.getElementById('att-calc-worked').textContent = worked.toFixed(2);
-    };
+    attInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            ['input', 'change', 'keyup'].forEach(evt => el.addEventListener(evt, window.calculateAtt));
+            el.setAttribute('oninput', 'window.calculateAtt()');
+        }
+    });
 
     document.getElementById('open-attendance-modal')?.addEventListener('click', () => {
         attMonthInput.value = new Date().toISOString().slice(0, 7);
@@ -1954,13 +2093,15 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const data = {
             month: attMonthInput.value,
-            totalDays: document.getElementById('att-total-days').value,
-            weeklyOffs: document.getElementById('att-weekly-offs').value,
-            ghDays: document.getElementById('att-gh-days').value,
-            absentDays: document.getElementById('att-absent-days').value,
-            leaveDays: document.getElementById('att-leave-days').value,
-            cplDays: document.getElementById('att-cpl-days').value,
-            withPayDays: document.getElementById('att-with-pay-days').value,
+            totalDays: parseFloat(document.getElementById('att-total-days').value) || 31,
+            weeklyOffs: parseFloat(document.getElementById('att-weekly-offs').value) || 0,
+            ghDays: parseFloat(document.getElementById('att-gh-days').value) || 0,
+            absentDays: parseFloat(document.getElementById('att-absent-days').value) || 0,
+            casualLeaves: parseFloat(document.getElementById('att-casual-leaves').value) || 0,
+            sickLeaves: parseFloat(document.getElementById('att-sick-leaves').value) || 0,
+            annualLeaves: parseFloat(document.getElementById('att-annual-leaves').value) || 0,
+            cplDays: parseFloat(document.getElementById('att-cpl-days').value) || 0,
+            leaveDays: parseFloat(document.getElementById('att-leave-days').value) || 0,
             actualWorkedDays: document.getElementById('att-calc-worked').textContent
         };
         

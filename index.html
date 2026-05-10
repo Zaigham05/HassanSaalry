@@ -166,6 +166,18 @@
                         <div>CPL / Pay: <span id="dash-stat-cpl">0</span></div>
                     </div>
                 </div>
+
+                <div class="card stat-card leave-card">
+                    <h3>Detailed Leave Balance</h3>
+                    <div class="stat-main" id="dash-leave-balance" style="color: #6366f1; font-size: 2rem;"><small>Total</small> 0</div>
+                    <div class="stat-subs">
+                        <div style="font-weight: bold; border-bottom: 1px solid var(--border-color); padding-bottom: 3px; margin-bottom: 5px;">Category: Accrued | Used | Bal</div>
+                        <div>Casual (1.0): <span id="dash-leave-casual">0 | 0 | 0</span></div>
+                        <div>Sick (0.5): <span id="dash-leave-sick">0 | 0 | 0</span></div>
+                        <div>Annual (1.5): <span id="dash-leave-annual">0 | 0 | 0</span></div>
+                        <div>CPL Balance: <span id="dash-leave-cpl">0</span></div>
+                    </div>
+                </div>
             </section>
 
             <!-- Attendance Summary Table moved to Tab -->
@@ -253,6 +265,10 @@
                                     <th style="padding: 12px; text-align: center;">GH</th>
                                     <th style="padding: 12px; text-align: center;">Absent</th>
                                     <th style="padding: 12px; text-align: center;">Leave</th>
+                                    <th style="padding: 12px; text-align: center;">Casual</th>
+                                    <th style="padding: 12px; text-align: center;">Sick</th>
+                                    <th style="padding: 12px; text-align: center;">Annual</th>
+                                    <th style="padding: 12px; text-align: center;">Unpaid</th>
                                     <th style="padding: 12px; text-align: center; color: #10b981; font-weight: bold;">CPL</th>
                                     <th style="padding: 12px; text-align: center; color: #10b981; font-weight: bold;">With Pay</th>
                                     <th style="padding: 12px; text-align: center;">Actions</th>
@@ -270,8 +286,12 @@
                                     <td id="dash-att-total-g" style="padding: 12px; text-align: center;">0</td>
                                     <td id="dash-att-total-a" style="padding: 12px; text-align: center;">0</td>
                                     <td id="dash-att-total-l" style="padding: 12px; text-align: center;">0</td>
-                                    <td id="dash-att-total-c" style="padding: 12px; text-align: center;">0</td>
-                                    <td id="dash-att-total-p" style="padding: 12px; text-align: center;">0</td>
+                                    <td id="dash-att-total-cas" style="padding: 12px; text-align: center;">0</td>
+                                    <td id="dash-att-total-sik" style="padding: 12px; text-align: center;">0</td>
+                                    <td id="dash-att-total-ann" style="padding: 12px; text-align: center;">0</td>
+                                    <td id="dash-att-total-uni" style="padding: 12px; text-align: center;">0</td>
+                                    <td id="dash-att-total-c" style="padding: 12px; text-align: center; color: #10b981; font-weight: bold;">0</td>
+                                    <td id="dash-att-total-p" style="padding: 12px; text-align: center; color: #10b981; font-weight: bold;">0</td>
                                     <td></td>
                                 </tr>
                             </tfoot>
@@ -871,15 +891,15 @@
             <tfoot>
                 <tr style="background: #f0fdf4; font-weight: bold; border: 1px solid #16a34a;">
                     <td style="padding: 6px; border: 1px solid #16a34a;">Total</td>
-                    <td id="att-total-month" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="att-total-worked" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="att-total-offs" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="att-total-gh" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="att-total-absent" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="att-total-leave" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="att-total-cpl" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="att-total-pay" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="att-total-days" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="sum-att-total-month" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="sum-att-total-worked" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="sum-att-total-offs" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="sum-att-total-gh" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="sum-att-total-absent" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="sum-att-total-leave" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="sum-att-total-cpl" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="sum-att-total-pay" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
+                    <td id="sum-att-total-days" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
                 </tr>
             </tfoot>
         </table>
@@ -952,31 +972,39 @@
                     </div>
                     <div class="form-group">
                         <label>Total Month Days</label>
-                        <input type="number" id="att-total-days" value="31" required>
+                        <input type="number" id="att-total-days" value="31" required oninput="triggerAttendanceCalculation()">
                     </div>
                     <div class="form-group">
                         <label>Weekly Offs</label>
-                        <input type="number" id="att-weekly-offs" value="4">
+                        <input type="number" id="att-weekly-offs" value="4" oninput="triggerAttendanceCalculation()">
                     </div>
                     <div class="form-group">
                         <label>GH Days</label>
-                        <input type="number" id="att-gh-days" value="0">
+                        <input type="number" id="att-gh-days" value="0" oninput="triggerAttendanceCalculation()">
                     </div>
                     <div class="form-group">
                         <label>Absent Days</label>
-                        <input type="number" id="att-absent-days" value="0" step="0.5">
+                        <input type="number" id="att-absent-days" value="0" step="0.5" oninput="triggerAttendanceCalculation()">
                     </div>
                     <div class="form-group">
-                        <label>Leave Days (Unpaid)</label>
-                        <input type="number" id="att-leave-days" value="0" step="0.5">
+                        <label>Casual Leaves</label>
+                        <input type="number" id="att-casual-leaves" value="0" step="0.5" oninput="triggerAttendanceCalculation()">
                     </div>
                     <div class="form-group">
-                        <label>CPL Days</label>
-                        <input type="number" id="att-cpl-days" value="0">
+                        <label>Sick Leaves</label>
+                        <input type="number" id="att-sick-leaves" value="0" step="0.5" oninput="triggerAttendanceCalculation()">
                     </div>
                     <div class="form-group">
-                        <label>With Pay Days</label>
-                        <input type="number" id="att-with-pay-days" value="0">
+                        <label>Annual Leaves</label>
+                        <input type="number" id="att-annual-leaves" value="0" step="0.5" oninput="triggerAttendanceCalculation()">
+                    </div>
+                    <div class="form-group">
+                        <label>CPL Days (Used)</label>
+                        <input type="number" id="att-cpl-days" value="0" step="0.5" oninput="triggerAttendanceCalculation()">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Unpaid / Other Leaves</label>
+                        <input type="number" id="att-leave-days" value="0" step="0.5" oninput="triggerAttendanceCalculation()">
                     </div>
                     <div class="form-group" style="grid-column: span 2; background: #f0fdf4; padding: 1rem; border-radius: 8px; border: 1px solid #10b981;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -992,6 +1020,43 @@
             </form>
         </div>
     </div>
+
+    <script>
+        function triggerAttendanceCalculation() {
+            try {
+                const getVal = (id) => parseFloat(document.getElementById(id)?.value) || 0;
+                
+                const total = getVal('att-total-days');
+                const offs = getVal('att-weekly-offs');
+                const gh = getVal('att-gh-days');
+                const abs = getVal('att-absent-days');
+                const cas = getVal('att-casual-leaves');
+                const sik = getVal('att-sick-leaves');
+                const ann = getVal('att-annual-leaves');
+                const cpl = getVal('att-cpl-days');
+                const unp = getVal('att-leave-days');
+                
+                const worked = total - (offs + gh + abs + cas + sik + ann + cpl + unp);
+                const display = document.getElementById('att-calc-worked');
+                if (display) {
+                    display.textContent = Math.max(0, worked).toFixed(2);
+                }
+            } catch (e) { console.error("Calc Error:", e); }
+        }
+    </script>
+    <!-- Logout Confirmation Modal -->
+    <div id="logout-confirm-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🚪</div>
+            <h2>Confirm Logout</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Are you sure you want to lock the dashboard? You will need your PIN to re-access your data.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button id="cancel-logout-btn" class="btn btn-outline" style="flex: 1;">Cancel</button>
+                <button id="confirm-logout-btn" class="btn btn-primary" style="flex: 1; background: #ef4444;">Logout</button>
+            </div>
+        </div>
+    </div>
+
 
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>

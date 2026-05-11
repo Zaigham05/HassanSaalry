@@ -1,1067 +1,446 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
-
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MR HASSAN - Premium Analysis</title>
-    <link rel="stylesheet" href="style.css">
+    <title>SpendWise | Premium Spend Analysis</title>
+    <meta name="description" content="A premium spend analysis dashboard for tracking expenses in PKR with real-time analytics.">
+    <!-- Google Fonts: Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap"
-        rel="stylesheet">
-    <!-- Chart.js for Analytics -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- html2pdf for Professional Slips -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-    <!-- The Vault (Security Lock) -->
-    <div id="vault-overlay">
-        <!-- Biometric Scan Overlay (Hidden until PIN verified) -->
-        <div id="biometric-screen" class="hidden">
-            <div class="scanner-container">
-                <div class="scan-circle">
-                    <div class="laser"></div>
-                    <div class="fingerprint"></div>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <i data-lucide="wallet"></i>
                 </div>
-                <div class="scan-text">IDENTITY VERIFIED</div>
-                <div class="scan-subtext">INITIATING SECURE ACCESS...</div>
+                <h1>SpendWise</h1>
             </div>
-        </div>
-
-        <div class="vault-card">
-            <span class="vault-icon">🔒</span>
-            <h2 id="vault-title">Enter Vault PIN</h2>
-            <p id="vault-msg" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">Access
-                restricted to authorized user</p>
-
-            <div class="pin-display">
-                <div class="pin-dot"></div>
-                <div class="pin-dot"></div>
-                <div class="pin-dot"></div>
-                <div class="pin-dot"></div>
-                <div class="pin-dot" id="dot-5" style="display: none;"></div>
-            </div>
-
-            <div class="numpad">
-                <button class="num-btn" data-num="1" onclick="pressNum(1)">1</button>
-                <button class="num-btn" data-num="2" onclick="pressNum(2)">2</button>
-                <button class="num-btn" data-num="3" onclick="pressNum(3)">3</button>
-                <button class="num-btn" data-num="4" onclick="pressNum(4)">4</button>
-                <button class="num-btn" data-num="5" onclick="pressNum(5)">5</button>
-                <button class="num-btn" data-num="6" onclick="pressNum(6)">6</button>
-                <button class="num-btn" data-num="7" onclick="pressNum(7)">7</button>
-                <button class="num-btn" data-num="8" onclick="pressNum(8)">8</button>
-                <button class="num-btn" data-num="9" onclick="pressNum(9)">9</button>
-                <button class="num-btn" id="pin-clear" onclick="clearPin()">C</button>
-                <button class="num-btn" data-num="0" onclick="pressNum(0)">0</button>
-                <button class="num-btn" id="pin-back" onclick="backPin()">⌫</button>
-            </div>
-            <p style="margin-top: 1.5rem; font-size: 0.75rem; color: var(--text-secondary);">
-                Forgot PIN? <a href="javascript:void(0)" id="forgot-pin-link" onclick="openRecoveryHub()"
-                    style="color: var(--accent-primary); cursor: pointer !important;">Recovery Hub</a>
-            </p>
-            <button id="set-pin-btn" class="btn btn-primary d-none" style="margin-top: 1.5rem; width: 100%;">Setup New
-                PIN</button>
-        </div>
-    </div>
-
-
-
-    <div class="dashboard-container">
-        <header class="header">
-            <div class="logo-area">
-                <div class="logo-icon"></div>
-                <h1>MR<span style="color: var(--accent-primary)"> HASSAN</span></h1>
-            </div>
-            <div class="header-actions">
-                <div class="search-box">
-                    <i class="search-icon">🔍</i>
-                    <input type="text" id="global-search" placeholder="Search records...">
+            <nav class="nav-menu">
+                <a href="#" class="nav-link active" id="nav-dashboard">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-link" id="nav-transactions">
+                    <i data-lucide="list"></i>
+                    <span>Transactions</span>
+                </a>
+                <a href="#" class="nav-link" id="nav-categories">
+                    <i data-lucide="tag"></i>
+                    <span>Categories</span>
+                </a>
+                <a href="#" class="nav-link" id="nav-analytics">
+                    <i data-lucide="calendar-days"></i>
+                    <span>Heatmap</span>
+                </a>
+                <a href="#" class="nav-link" id="nav-settings">
+                    <i data-lucide="settings"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar">MH</div>
+                <div class="user-info">
+                    <p class="user-name">Mr Hacker</p>
+                    <p class="user-status">Premium Plan</p>
                 </div>
-                <button id="theme-toggle" class="theme-btn">☀️</button>
-                <button id="stealth-toggle" class="theme-btn" title="Stealth Mode">👁️</button>
-                <select id="filter-year" class="filter-select">
-                    <option value="all">All Years</option>
-                    <option value="2026">2026</option>
-                    <option value="2025">2025</option>
-                    <option value="2024">2024</option>
-                </select>
-                <button class="btn btn-outline" id="security-settings-btn" title="Security Settings">🔒
-                    Settings</button>
-                <button class="btn btn-outline" id="logout-btn" title="Lock Dashboard"
-                    style="border-color: #ef4444; color: #ef4444;">🚪 Logout</button>
-                <button class="btn btn-primary" id="open-salary-modal">+ Add Salary Record</button>
-                <button class="btn btn-outline" id="open-funds-modal">Add Funds</button>
-                <button class="btn btn-outline" id="open-audit-btn" title="Quick Audit Insights">⚖️ Audit</button>
-                <button class="btn btn-outline" id="show-dashboard-btn">Show Dashboard</button>
             </div>
-        </header>
+        </aside>
 
+        <!-- Main Content -->
         <main class="main-content">
-            <!-- Dashboard Summary Cards -->
-            <section class="dashboard-cards">
-                <div class="card stat-card addition-card">
-                    <h3>Total Gross</h3>
-                    <div class="stat-main" id="dash-gross">0</div>
-                    <div class="stat-subs">
-                        <div>Basic: <span id="dash-basic">0</span></div>
-                        <div>OT: <span id="dash-ot">0</span></div>
-                        <div>
-                            <p>Funds:</p>
-                            <span id="dash-funds">0</span>
-                        </div>
-                        <div id="dash-funds-breakdown" class="funds-segregation">
-                            <!-- Dynamic funds breakdown here -->
+            <header class="top-header glass">
+                <div class="header-left">
+                    <div class="view-title-box">
+                        <h1 id="active-view-title">Dashboard</h1>
+                        <div class="greeting-row">
+                            <span id="user-greeting">Good Afternoon, User!</span>
+                            <span class="dot-separator">•</span>
+                            <span id="current-date-display">Sunday, 10 May</span>
                         </div>
                     </div>
                 </div>
-
-                <div class="card stat-card deduction-card">
-                    <h3>Total Deduction</h3>
-                    <div class="stat-main" id="dash-deduction">0</div>
-                    <div class="stat-subs">
-                        <div>PF Contribution: <span id="dash-pf">0</span></div>
-                        <div>Income Tax: <span id="dash-tax">0</span></div>
-                        <div>Other Tax: <span id="dash-fund-tax">0</span></div>
-                        <div>Short Time: <span id="dash-short">0</span></div>
-                        <div>EOBI: <span id="dash-eobi">0</span></div>
-                        <div>Others: <span id="dash-others">0</span></div>
+                <div class="header-right">
+                    <div class="period-selector glass">
+                        <i data-lucide="calendar"></i>
+                        <select id="global-month-selector">
+                            <!-- Dynamic months -->
+                        </select>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-primary pulse" id="add-expense-btn">
+                            <i data-lucide="plus"></i>
+                            <span>Add Transaction</span>
+                        </button>
+                        <button class="icon-btn">
+                            <i data-lucide="bell"></i>
+                        </button>
                     </div>
                 </div>
+            </header>
 
-                <div class="card stat-card net-card">
-                    <h3>Total Net Payable</h3>
-                    <div class="stat-main" id="dash-net">0</div>
-                    <div class="stat-subs">
-                        <div>Total Salary: <span id="dash-total-salary">0</span></div>
-                        <div>Regular Salary: <span id="dash-net-reg">0</span></div>
-                        <div>Over Time Pay: <span id="dash-net-ot">0</span></div>
-                    </div>
-                </div>
-
-                <div class="card stat-card avg-card">
-                    <h3>Average Salary</h3>
-                    <div class="stat-main" id="dash-avg">0</div>
-                    <div class="stat-subs">
-                        <div>Total Avg Salary: <span id="dash-avg-total">0</span></div>
-                        <div>Monthly Avg: <span id="dash-avg-reg">0</span></div>
-                        <div>OT Avg: <span id="dash-avg-ot">0</span></div>
-                    </div>
-                </div>
-
-                <div class="card stat-card att-card">
-                    <h3>Working Days Summary</h3>
-                    <div class="stat-main" id="dash-stat-worked" style="color: #10b981;">0</div>
-                    <div class="stat-subs">
-                        <div>Total Month Days: <span id="dash-stat-total">0</span></div>
-                        <div>Absent Days: <span id="dash-stat-absent" class="deduction-text">0</span></div>
-                        <div>Leave Days: <span id="dash-stat-leave">0</span></div>
-                        <div>CPL / Pay: <span id="dash-stat-cpl">0</span></div>
-                    </div>
-                </div>
-
-                <div class="card stat-card leave-card">
-                    <h3>Detailed Leave Balance</h3>
-                    <div class="stat-main" id="dash-leave-balance" style="color: #6366f1; font-size: 2rem;"><small>Total</small> 0</div>
-                    <div class="stat-subs">
-                        <div style="font-weight: bold; border-bottom: 1px solid var(--border-color); padding-bottom: 3px; margin-bottom: 5px;">Category: Accrued | Used | Bal</div>
-                        <div>Casual (1.0): <span id="dash-leave-casual">0 | 0 | 0</span></div>
-                        <div>Sick (0.5): <span id="dash-leave-sick">0 | 0 | 0</span></div>
-                        <div>Annual (1.5): <span id="dash-leave-annual">0 | 0 | 0</span></div>
-                        <div>CPL Balance: <span id="dash-leave-cpl">0</span></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Attendance Summary Table moved to Tab -->
-            <div id="attendance-placeholder"></div>
-
-            <!-- What-If Playground Section -->
-            <section id="what-if-playground" class="simulator-section card dashboard-view-component"
-                style="margin-top: 2rem; padding: 2.5rem; border: 1px solid var(--accent-primary);">
-                <div
-                    style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
-                    <div>
-                        <h2
-                            style="margin: 0; font-size: 1.5rem; background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                            🎢 What-If Playground</h2>
-                        <p style="margin: 0.5rem 0 0; color: var(--text-secondary); font-size: 0.9rem;">Simulate your
-                            future earnings by moving the sliders!</p>
-                    </div>
-                    <div id="sim-result-badge"
-                        style="background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); padding: 1rem 2rem; border-radius: 12px; border: 1px solid var(--accent-primary); text-align: center; min-width: 200px; box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);">
-                        <span
-                            style="display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;">Projected
-                            Net Pay</span>
-                        <strong id="sim-projected-pay" style="font-size: 1.5rem;">PKR 0</strong>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
-                    <div class="sim-control">
-                        <label
-                            style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">
-                            Base Salary:
-                            <input type="number" id="sim-input-salary" value="100000" min="40000"
-                                style="background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-primary); border-radius: 6px; padding: 2px 8px; width: 100px; font-weight: bold; outline: none; transition: var(--transition);">
-                        </label>
-                        <input type="range" id="sim-slider-salary" min="40000" max="1000000" step="1000" value="100000"
-                            class="aura-slider">
-                    </div>
-                    <div class="sim-control">
-                        <label
-                            style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">OT
-                            Hours: <strong id="sim-val-ot" style="color: var(--text-primary);">0</strong></label>
-                        <input type="range" id="sim-slider-ot" min="0" max="100" step="1" value="0" class="aura-slider">
-                    </div>
-                    <div class="sim-control">
-                        <label
-                            style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">Expected
-                            Raise: <strong id="sim-val-raise" style="color: var(--text-primary);">0</strong>%</label>
-                        <input type="range" id="sim-slider-raise" min="0" max="50" step="1" value="0"
-                            class="aura-slider">
-                    </div>
-                </div>
-            </section>
-
-            <!-- Data Table Section (Hidden by Default) -->
-            <section id="data-view" class="d-none">
-                <div class="data-tabs">
-                    <button class="tab-btn active" id="tab-attendance"><i>📅</i> Attendance Detail</button>
-                    <button class="tab-btn" id="tab-salary"><i>📄</i> Salary Records</button>
-                    <button class="tab-btn" id="tab-funds"><i>💰</i> Managed Funds</button>
-                    <button class="tab-btn" id="tab-insights"><i>📊</i> Visual Insights</button>
-                    <button class="tab-btn" id="tab-compare"><i>⚖️</i> Compare Records</button>
-                    <button class="tab-btn" id="tab-logs"><i>📜</i> Activity Logs</button>
-                </div>
-
-                <!-- New Attendance Section inside Data View -->
-                <div id="attendance-section" class="card dashboard-view-component" style="overflow-x: auto; border: 1px solid var(--card-border); padding: 2rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #10b981; padding-bottom: 1rem;">
-                        <h3 style="margin: 0; color: #065f46; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 1.4rem;">📅</span> Monthly Days Detail
-                        </h3>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <button class="btn btn-primary" id="export-attendance-btn" style="background: #10b981; padding: 4px 12px; font-size: 0.8rem;">📅 Export Summary</button>
-                            <button class="btn btn-primary" id="open-attendance-modal" style="background: #059669; padding: 4px 12px; font-size: 0.8rem;">➕ Add Detail</button>
-                            <span style="font-size: 0.85rem; background: #10b981; color: #fff; padding: 4px 12px; border-radius: 20px; font-weight: bold;" id="att-view-year-label">YEAR: 2025</span>
-                        </div>
-                    </div>
-                    <div style="overflow-x: auto;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 700px;">
-                            <thead>
-                                <tr style="background: #ecfdf5; color: #065f46; border-bottom: 1px solid #10b981;">
-                                    <th style="padding: 12px; text-align: center; width: 15%;">Month</th>
-                                    <th style="padding: 12px; text-align: center;">Total Days</th>
-                                    <th style="padding: 12px; text-align: center; background: #d1fae5;">Worked</th>
-                                    <th style="padding: 12px; text-align: center;">Offs</th>
-                                    <th style="padding: 12px; text-align: center;">GH</th>
-                                    <th style="padding: 12px; text-align: center;">Absent</th>
-                                    <th style="padding: 12px; text-align: center;">Leave</th>
-                                    <th style="padding: 12px; text-align: center;">Casual</th>
-                                    <th style="padding: 12px; text-align: center;">Sick</th>
-                                    <th style="padding: 12px; text-align: center;">Annual</th>
-                                    <th style="padding: 12px; text-align: center;">Unpaid</th>
-                                    <th style="padding: 12px; text-align: center; color: #10b981; font-weight: bold;">CPL</th>
-                                    <th style="padding: 12px; text-align: center; color: #10b981; font-weight: bold;">With Pay</th>
-                                    <th style="padding: 12px; text-align: center;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dash-attendance-body">
-                                <!-- Live data injected here -->
-                            </tbody>
-                            <tfoot style="background: #f8fafc; font-weight: bold; border-top: 2px solid #10b981;">
-                                <tr>
-                                    <td style="padding: 12px; text-align: center;">YEARLY TOTAL</td>
-                                    <td id="dash-att-total-m" style="padding: 12px; text-align: center;">0</td>
-                                    <td id="dash-att-total-w" style="padding: 12px; text-align: center; background: #d1fae5;">0</td>
-                                    <td id="dash-att-total-o" style="padding: 12px; text-align: center;">0</td>
-                                    <td id="dash-att-total-g" style="padding: 12px; text-align: center;">0</td>
-                                    <td id="dash-att-total-a" style="padding: 12px; text-align: center;">0</td>
-                                    <td id="dash-att-total-l" style="padding: 12px; text-align: center;">0</td>
-                                    <td id="dash-att-total-cas" style="padding: 12px; text-align: center;">0</td>
-                                    <td id="dash-att-total-sik" style="padding: 12px; text-align: center;">0</td>
-                                    <td id="dash-att-total-ann" style="padding: 12px; text-align: center;">0</td>
-                                    <td id="dash-att-total-uni" style="padding: 12px; text-align: center;">0</td>
-                                    <td id="dash-att-total-c" style="padding: 12px; text-align: center; color: #10b981; font-weight: bold;">0</td>
-                                    <td id="dash-att-total-p" style="padding: 12px; text-align: center; color: #10b981; font-weight: bold;">0</td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-
-                <div id="salary-section" class="d-none">
-                    <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                        <button class="btn btn-outline" id="export-salary-btn">📊 Export Records</button>
-                        <button class="btn btn-primary" id="export-yearly-audit-btn">📄 Yearly Audit</button>
-                        <button class="btn btn-accent" id="export-alltime-audit-btn">🏛️ All-Time Summary</button>
-                        <button class="btn btn-accent" style="background: #8b5cf6;" id="export-tax-cert-btn">📜 Tax Certificate</button>
-                    </div>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Month</th>
-                                    <th>Salary</th>
-                                    <th>PF</th>
-                                    <th>EOBI</th>
-                                    <th>Tax</th>
-                                    <th>WP</th>
-                                    <th>Short Time</th>
-                                    <th>Deduct</th>
-                                    <th>OT Pay</th>
-                                    <th>Gross</th>
-                                    <th>Net Pay</th>
-                                    <th>Remarks</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="records-body"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div id="funds-section" class="d-none">
-                    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-                        <button class="btn btn-outline" id="export-funds-btn">💰 Export Managed Funds</button>
-                    </div>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Type</th>
-                                    <th>Amount</th>
-                                    <th>Tax</th>
-                                    <th>Remarks</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="funds-body"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Wave 2: Insights Section -->
-                <div id="insights-section" class="d-none">
-                    <div class="dashboard-cards">
-                        <div class="card" style="grid-column: span 2;">
-                            <h3>Salary Trend</h3>
-                            <div class="chart-container">
-                                <canvas id="salaryTrendChart"></canvas>
+            <!-- Dashboard View -->
+            <section id="view-dashboard" class="view active">
+                <div class="dashboard-grid">
+                    <!-- Summary Cards -->
+                    <div class="stats-grid">
+                        <div class="stat-card glass">
+                            <div class="stat-icon income">
+                                <i data-lucide="wallet"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Total Income</h3>
+                                <p class="stat-value" id="total-income">PKR 0</p>
+                                <span class="stat-change positive">Actual Money In</span>
                             </div>
                         </div>
-                        <div class="card" style="grid-column: span 2;">
-                            <h3>Deduction Breakdown</h3>
-                            <div class="chart-container">
-                                <canvas id="deductionBreakdownChart"></canvas>
+                        <div class="stat-card glass clickable" id="budget-card">
+                            <div class="stat-icon budget">
+                                <i data-lucide="target"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Spending Budget</h3>
+                                <p class="stat-value" id="total-budget">PKR 0</p>
+                                <span class="stat-change neutral">Set Goal</span>
                             </div>
                         </div>
-                        <div class="card" style="grid-column: span 4; margin-top: 2rem;">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                                <h3>Monthly Salary Heatmap</h3>
-                                <div
-                                    style="display: flex; gap: 0.5rem; align-items: center; font-size: 0.7rem; color: var(--text-secondary);">
-                                    <span>Low</span>
-                                    <div
-                                        style="width: 12px; height: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 2px;">
-                                    </div>
-                                    <div
-                                        style="width: 12px; height: 12px; background: rgba(16, 185, 129, 0.4); border-radius: 2px;">
-                                    </div>
-                                    <div
-                                        style="width: 12px; height: 12px; background: rgba(16, 185, 129, 0.7); border-radius: 2px;">
-                                    </div>
-                                    <div style="width: 12px; height: 12px; background: #10b981; border-radius: 2px;">
-                                    </div>
-                                    <span>Peak</span>
+                        <div class="stat-card glass">
+                            <div class="stat-icon expense">
+                                <i data-lucide="trending-down"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Total Spent</h3>
+                                <p class="stat-value" id="total-spent">PKR 0</p>
+                                <span class="stat-change negative" id="spent-percentage">0% of budget</span>
+                            </div>
+                        </div>
+                        <div class="stat-card glass">
+                            <div class="stat-icon balance">
+                                <i data-lucide="landmark"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Lent / Debt</h3>
+                                <p class="stat-value" id="debt-balance">PKR 0</p>
+                                <span class="stat-change neutral" id="debt-status">No active lends</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="charts-row">
+                        <div class="chart-container glass large">
+                            <div class="chart-header">
+                                <h3>Spending Trends</h3>
+                                <div class="chart-actions">
+                                    <select id="trend-period">
+                                        <option value="week">Weekly</option>
+                                        <option value="month">Monthly</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div id="salary-heatmap-container" class="heatmap-wrapper"></div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- Wave 4: Comparison Section -->
-                <div id="compare-section" class="d-none">
-                    <div class="card" style="min-height: 500px;">
-                        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; align-items: center;">
-                            <select id="compare-type" class="filter-select" style="width: 150px;">
-                                <option value="month">Month vs Month</option>
-                                <option value="year">Year vs Year</option>
-                            </select>
-                            <div id="compare-inputs" style="display: flex; gap: 1rem;">
-                                <select id="compare-1" class="filter-select" style="width: 180px;"></select>
-                                <span style="align-self: center; font-weight: 800;">VS</span>
-                                <select id="compare-2" class="filter-select" style="width: 180px;"></select>
+                            <div class="chart-wrapper">
+                                <canvas id="trendsChart"></canvas>
                             </div>
-                            <button id="run-compare" class="btn btn-primary">Compare Now</button>
                         </div>
-                        <div id="compare-results" class="grid-form pro-grid">
-                            <!-- Comparison data here -->
+                        <div class="chart-container glass small">
+                            <div class="chart-header">
+                                <h3>Category Split</h3>
+                            </div>
+                            <div class="chart-wrapper">
+                                <canvas id="categoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Transactions -->
+                    <div class="recent-transactions glass">
+                        <div class="section-header">
+                            <h3>Recent Transactions</h3>
+                            <a href="#" class="view-all" id="view-all-transactions">View All</a>
+                        </div>
+                        <div class="transaction-list" id="recent-transaction-list">
+                            <div class="empty-state">
+                                <i data-lucide="info"></i>
+                                <p>No transactions found. Add your first record!</p>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </section>
 
-                <div id="logs-section" class="d-none">
-                    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-                        <button class="btn btn-outline" id="export-logs-btn">📜 Export Activity Logs</button>
+            <!-- Full Transactions View -->
+            <section id="view-transactions" class="view">
+                <div class="section-header">
+                    <h2>Transaction History</h2>
+                    <div class="filter-bar glass">
+                        <div class="results-counter" id="transaction-count">Showing 0 records</div>
+                        <div class="search-input">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="transaction-search" placeholder="Search notes...">
+                        </div>
+                        <select id="filter-category">
+                            <option value="all">All Categories</option>
+                        </select>
+                        <select id="filter-type">
+                            <option value="all">All Types</option>
+                            <option value="Income">Income</option>
+                            <option value="Expense">Expense</option>
+                            <option value="Lend">Lend</option>
+                            <option value="Repay">Repay</option>
+                        </select>
+                        <div class="export-actions">
+                            <button class="action-btn" id="export-csv" title="Export CSV">
+                                <i data-lucide="file-spreadsheet"></i>
+                            </button>
+                            <button class="action-btn" id="export-pdf" title="Export PDF">
+                                <i data-lucide="file-text"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>Action</th>
-                                    <th>Type</th>
-                                    <th>ID</th>
-                                    <th>Details</th>
-                                </tr>
-                            </thead>
-                            <tbody id="logs-body"></tbody>
-                        </table>
+                </div>
+                <div class="transaction-list glass" id="full-transaction-list">
+                    <!-- Loaded dynamically -->
+                </div>
+            </section>
+
+            <!-- Categories View -->
+            <section id="view-categories" class="view">
+                <div class="section-header">
+                    <h2>Category Management</h2>
+                    <button class="btn-primary" id="add-category-btn">
+                        <i data-lucide="plus"></i>
+                        <span>Add Category</span>
+                    </button>
+                </div>
+                <div class="category-grid" id="category-list">
+                    <!-- Categories loaded dynamically -->
+                </div>
+            </section>
+
+            <!-- Heatmap View -->
+            <section id="view-analytics" class="view">
+                <div class="section-header">
+                    <h2>Spending Heatmap</h2>
+                    <p class="text-muted">Daily spending intensity for the selected month</p>
+                </div>
+                <div id="heatmap-container" class="glass calendar-grid">
+                    <!-- Loaded dynamically -->
+                </div>
+                <div class="heatmap-legend">
+                    <span>Low Spend</span>
+                    <div class="legend-scale">
+                        <div class="scale-box level-0"></div>
+                        <div class="scale-box level-1"></div>
+                        <div class="scale-box level-2"></div>
+                        <div class="scale-box level-3"></div>
+                        <div class="scale-box level-4"></div>
+                    </div>
+                    <span>High Spend</span>
+                </div>
+            </section>
+
+            <!-- Settings View (The Command Center) -->
+            <section id="view-settings" class="view">
+                <div class="settings-grid">
+                    <!-- Profile Card -->
+                    <div class="glass settings-card">
+                        <div class="card-header">
+                            <i data-lucide="user"></i>
+                            <h3>Identity Control</h3>
+                        </div>
+                        <div class="form-group">
+                            <label>Profile Name</label>
+                            <input type="text" id="settings-username" value="Mr Hacker">
+                        </div>
+                        <button class="btn-primary" onclick="app.updateProfile()">Update Profile</button>
+                    </div>
+
+                    <!-- Appearance Card -->
+                    <div class="glass settings-card">
+                        <div class="card-header">
+                            <i data-lucide="palette"></i>
+                            <h3>Visual Overdrive</h3>
+                        </div>
+                        <label>Accent Color</label>
+                        <div class="color-presets">
+                            <div class="color-swatch active" style="background: #00e5ff;" onclick="app.setAccent('#00e5ff', this)" title="Cyan"></div>
+                            <div class="color-swatch" style="background: #7000ff;" onclick="app.setAccent('#7000ff', this)" title="Purple"></div>
+                            <div class="color-swatch" style="background: #ff0055;" onclick="app.setAccent('#ff0055', this)" title="Rose"></div>
+                            <div class="color-swatch" style="background: #00ff88;" onclick="app.setAccent('#00ff88', this)" title="Emerald"></div>
+                        </div>
+                    </div>
+
+                    <!-- Data Vault Card -->
+                    <div class="glass settings-card">
+                        <div class="card-header">
+                            <i data-lucide="database"></i>
+                            <h3>Data Vault</h3>
+                        </div>
+                        <div class="data-actions">
+                            <button class="btn-secondary" onclick="app.exportBackup()">
+                                <i data-lucide="download"></i> Backup Data
+                            </button>
+                            <button class="btn-secondary" onclick="document.getElementById('import-file').click()">
+                                <i data-lucide="upload"></i> Restore Data
+                            </button>
+                            <input type="file" id="import-file" style="display: none;" onchange="app.importBackup(this)">
+                            <button class="btn-danger" onclick="app.resetEverything()">
+                                <i data-lucide="trash-2"></i> Nuclear Reset
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- Salary Entry Modal (The Pro Form) -->
-    <div id="salary-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header"
-                style="margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <h2 style="font-size: 1.2rem; margin: 0;">New Salary Entry</h2>
-                    <p style="color: var(--text-secondary); font-size: 0.75rem; margin: 0;">Calculations are automatic.
-                    </p>
-                </div>
-                <button type="button" class="close-modal"
-                    style="width: 32px; height: 32px; font-size: 1rem;">&times;</button>
-            </div>
-
-            <form id="salary-form">
-                <div class="grid-form pro-grid">
-                    <div class="form-group">
-                        <label>Month <span class="required">*</span></label>
-                        <input type="month" id="month" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Base Salary <span class="required">*</span></label>
-                        <input type="text" id="salary" placeholder="e.g. 50,000" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Total Days</label>
-                        <input type="number" id="total-days" value="26">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Working Days (Auto)</label>
-                        <input type="number" id="working-days" class="auto-calc" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Absent Days</label>
-                        <input type="number" id="absent-days" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Leaves with Pay</label>
-                        <input type="number" id="leaves-with-pay" value="0">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Short Time (HH:MM:SS)</label>
-                        <input type="text" id="short-time" value="00:00:00">
-                    </div>
-                    <div class="form-group">
-                        <label>Weekly Off Days</label>
-                        <input type="number" id="weekly-offs" value="4">
-                    </div>
-                    <div class="form-group">
-                        <label>GH Days (Holidays)</label>
-                        <input type="number" id="gh-days" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Leave Days (Unpaid)</label>
-                        <input type="number" id="leave-days" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>CPL Days</label>
-                        <input type="number" id="cpl-days" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Days With Pay (Bonus)</label>
-                        <input type="number" id="with-pay-days" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Worked Days (Auto)</label>
-                        <input type="number" id="actual-worked-days" step="0.01" class="auto-calc" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>OT Time (HH:MM:SS)</label>
-                        <input type="text" id="ot-time" value="00:00:00">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Over Time Amount (Auto)</label>
-                        <input type="text" id="ot-amount" class="auto-calc" readonly>
-                    </div>
-                    <div class="form-group">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <label>PF Deduction (8.34%)</label>
-                            <button type="button" class="unlock-btn" data-target="pf-deduction">🔒</button>
-                        </div>
-                        <input type="text" id="pf-deduction" class="auto-calc" readonly>
-                    </div>
-                    <div class="form-group">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <label>EOBI Deduction</label>
-                            <button type="button" class="unlock-btn" data-target="eobi-deduction">🔒</button>
-                        </div>
-                        <input type="text" id="eobi-deduction" value="270" class="auto-calc" readonly>
-                    </div>
-
-                    <div class="form-group">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <label>Income Tax</label>
-                            <button type="button" class="unlock-btn" data-target="income-tax">🔒</button>
-                        </div>
-                        <input type="text" id="income-tax" class="auto-calc" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Without Pay (Manual)</label>
-                        <input type="text" id="without-pay" value="0">
-                    </div>
-
-                    <!-- Custom Deductions Engine -->
-                    <div class="form-group full-width"
-                        style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h3 style="font-size: 0.9rem; letter-spacing: 1px; color: var(--accent-primary);">ADDITIONAL
-                                DEDUCTIONS</h3>
-                            <button type="button" id="add-custom-deduction" class="btn btn-outline btn-sm">+ Add
-                                Category</button>
-                        </div>
-                        <div id="custom-deductions-list" style="display: flex; flex-direction: column; gap: 1rem;">
-                            <!-- Dynamic rows will appear here -->
-                        </div>
-                    </div>
-
-                    <div class="form-group full-width" style="margin-top: 1rem;">
-                        <label>Remarks</label>
-                        <textarea id="remarks" rows="2" placeholder="Any additional notes..."></textarea>
-                    </div>
-                </div>
-
-                <!-- Pro Summary Cards inside Modal -->
-                <div class="modal-summary-grid">
-                    <div class="summary-card"
-                        style="border-left: 4px solid var(--accent-danger); background: rgba(239, 68, 68, 0.08);">
-                        <label>Over All Deduction (Auto)</label>
-                        <input type="text" id="overall-deduction" class="stat-main-sm deduction-text" readonly>
-                    </div>
-                    <div class="summary-card"
-                        style="border-left: 4px solid var(--accent-success); background: rgba(16, 185, 129, 0.08);">
-                        <label>Gross Salary (Auto)</label>
-                        <input type="text" id="gross-salary" class="stat-main-sm addition-text" readonly>
-                    </div>
-                    <div class="summary-card"
-                        style="border-left: 4px solid var(--accent-primary); background: rgba(59, 130, 246, 0.08);">
-                        <label>Net Payable (Auto)</label>
-                        <input type="text" id="net-payable" class="stat-main-sm net-text" readonly>
-                    </div>
-                </div>
-
-                <div class="form-actions-center">
-                    <button type="submit" class="btn btn-primary" style="width: 200px;">Save Record</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Add Funds Modal -->
-    <div id="funds-modal" class="modal-overlay hidden">
-        <div class="modal-content modal-sm">
+    <!-- Modal for Adding Expense -->
+    <div id="expense-modal" class="modal">
+        <div class="modal-content glass">
             <div class="modal-header">
-                <h2>Add Managed Fund</h2>
+                <h2>Add New Expense</h2>
                 <button class="close-modal">&times;</button>
             </div>
-            <form id="funds-form">
-                <input type="hidden" id="fund-id">
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label>Month</label>
-                    <input type="month" id="funds-month" required>
+            <form id="transaction-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="type">Type</label>
+                        <select id="type" required>
+                            <option value="Expense">Expense (Out)</option>
+                            <option value="Income">Income (In)</option>
+                            <option value="Lend">Lend (Money Out)</option>
+                            <option value="Repay">Repay (Money In/Out)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Amount (PKR) <span id="calc-result" class="calc-badge"></span></label>
+                        <input type="text" id="amount" placeholder="e.g. 500+250" required>
+                    </div>
                 </div>
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label>Fund Type</label>
-                    <select id="funds-type">
-                        <option value="Bonus">Bonus</option>
-                        <option value="Incentive">Incentive</option>
-                        <option value="Arrears">Arrears</option>
-                        <option value="WPPF 5%">WPPF 5%</option>
-                        <option value="PF">PF</option>
+                <div class="form-group">
+                    <label for="category">Category</label>
+                    <select id="category" required>
+                        <option value="Salary">Salary</option>
+                        <option value="Food">Food & Dining</option>
+                        <option value="Transport">Transportation</option>
+                        <option value="Housing">Housing & Rent</option>
+                        <option value="Tech">Tech & Subscriptions</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Debt">Lending / Debt</option>
                         <option value="Other">Other</option>
                     </select>
                 </div>
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label>Amount</label>
-                    <input type="number" id="funds-amount" required>
+                <div class="form-group">
+                    <label for="date">Date</label>
+                    <input type="date" id="date" required>
                 </div>
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label>Tax Deduction</label>
-                    <input type="number" id="funds-tax" value="0">
+                <div class="form-group">
+                    <label for="note">Note (Optional)</label>
+                    <input type="text" id="note" placeholder="e.g. Dinner with friends">
                 </div>
-                <div class="form-group" style="margin-bottom: 1.5rem;">
-                    <label>Remarks</label>
-                    <textarea id="funds-remarks"></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Add Fund</button>
+                <button type="submit" class="btn-submit">Add Transaction</button>
             </form>
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div id="delete-modal" class="modal-overlay hidden">
-        <div class="modal-content modal-sm" style="text-align: center;">
-            <span style="font-size: 3rem; display: block; margin-bottom: 1rem;">⚠️</span>
-            <h2>Confirm Deletion</h2>
-            <p style="color: var(--text-secondary); margin: 1rem 0 2rem;">Are you sure you want to delete this record?
-                This action cannot be undone.</p>
-            <div style="display: flex; gap: 1rem; justify-content: center;">
-                <button id="confirm-delete-btn" class="btn btn-primary" style="background: var(--accent-danger);">Delete
-                    Now</button>
-                <button id="cancel-delete" class="btn btn-outline">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recovery Modal -->
-    <div id="recovery-modal" class="modal-overlay hidden">
-        <div class="modal-content modal-sm">
+    <!-- Modal for Setting Budget -->
+    <div id="budget-modal" class="modal">
+        <div class="modal-content glass">
             <div class="modal-header">
-                <h2>PIN Recovery</h2>
-                <button class="close-modal">&times;</button>
+                <h2>Set Monthly Budget</h2>
+                <button class="close-modal" id="close-budget-modal">&times;</button>
             </div>
-            <div id="recovery-step-1">
-                <div class="form-group" style="margin-bottom: 1.5rem;">
-                    <label>Enter Recovery Email</label>
-                    <input type="email" id="recovery-verify-email" placeholder="your@email.com">
-                </div>
-                <button id="verify-recovery-btn" class="btn btn-primary" style="width: 100%;">Verify Email</button>
-            </div>
-            <div id="recovery-step-2" class="d-none">
-                <div class="form-group" style="margin-bottom: 1.5rem;">
-                    <label>Enter New 4-Digit PIN</label>
-                    <input type="password" id="recovery-new-pin" maxlength="4" placeholder="••••">
-                </div>
-                <button id="finalize-recovery-btn" class="btn btn-primary" style="width: 100%;">Reset PIN Now</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notifications -->
-    <div id="toast-container" style="position: fixed; top: 2rem; right: 2rem; z-index: 30000; pointer-events: none;">
-    </div>
-    <div id="security-modal" class="modal-overlay hidden">
-        <div class="modal-content modal-sm">
-            <div class="modal-header">
-                <h2>Security Settings</h2>
-                <button class="close-modal">&times;</button>
-            </div>
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-                <label>Current PIN</label>
-                <input type="password" id="current-pin-input" maxlength="4" placeholder="••••">
-            </div>
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-                <label>New 4-Digit PIN</label>
-                <input type="password" id="new-pin-input" maxlength="4" placeholder="••••">
-            </div>
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-                <label>Recovery Email (For PIN Reset)</label>
-                <input type="email" id="recovery-email-input" placeholder="your@email.com">
-            </div>
-            <button id="update-pin-btn" class="btn btn-primary" style="width: 100%;">Update Security Profile</button>
-            <p style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 1rem; text-align: center;">
-                Changing the PIN or Email will re-lock the vault.
-            </p>
-        </div>
-    </div>
-    <div id="pdf-template"
-        style="display: none; width: 800px; padding: 40px; background: white; color: black; font-family: 'Inter', sans-serif;">
-        <div
-            style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 20px; margin-bottom: 30px;">
-            <div>
-                <h1 style="margin: 0; font-size: 24px;">SALARY SLIP</h1>
-                <p id="pdf-month" style="margin: 5px 0 0; color: #64748b; font-weight: 600;"></p>
-            </div>
-            <div style="text-align: right;">
-                <h2 style="margin: 0; font-size: 18px; color: #0f172a;">MR HASSAN</h2>
-                <p style="margin: 0; font-size: 12px; color: #64748b;">Automated Financial Record</p>
-            </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 30px;">
-            <div>
-                <h3
-                    style="font-size: 14px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 15px;">
-                    Earnings</h3>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <tr>
-                        <td style="padding: 8px 0;">Base Salary</td>
-                        <td id="pdf-base" style="text-align: right; font-weight: 600;"></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px 0;">Over Time</td>
-                        <td id="pdf-ot" style="text-align: right; font-weight: 600;"></td>
-                    </tr>
-                    <tr style="border-top: 1px solid #e2e8f0;">
-                        <td style="padding: 12px 0; font-weight: 700;">Total Gross</td>
-                        <td id="pdf-gross" style="text-align: right; font-weight: 700; color: #10b981;"></td>
-                    </tr>
-                </table>
-            </div>
-            <div>
-                <h3
-                    style="font-size: 14px; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 15px;">
-                    Deductions</h3>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <tr>
-                        <td style="padding: 8px 0;">PF Contribution</td>
-                        <td id="pdf-pf" style="text-align: right; font-weight: 600;"></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px 0;">Income Tax</td>
-                        <td id="pdf-tax" style="text-align: right; font-weight: 600;"></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px 0;">EOBI</td>
-                        <td id="pdf-eobi" style="text-align: right; font-weight: 600;"></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px 0;">Others/WP</td>
-                        <td id="pdf-others" style="text-align: right; font-weight: 600;"></td>
-                    </tr>
-                    <tr style="border-top: 1px solid #e2e8f0;">
-                        <td style="padding: 12px 0; font-weight: 700;">Total Deductions</td>
-                        <td id="pdf-deduct" style="text-align: right; font-weight: 700; color: #ef4444;"></td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-
-        <div
-            style="background: #f8fafc; padding: 25px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-            <span style="font-size: 16px; font-weight: 700; color: #0f172a;">NET PAYABLE AMOUNT</span>
-            <span id="pdf-net" style="font-size: 22px; font-weight: 900; color: #3b82f6;"></span>
-        </div>
-
-        <div
-            style="font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center;">
-            This is a computer-generated document and does not require a physical signature. Generated on <span
-                id="pdf-gen-date"></span>
-        </div>
-    </div>
-
-    <!-- Quick-Audit Insights Drawer -->
-    <div id="audit-drawer" class="drawer">
-        <div class="drawer-content">
-            <div class="drawer-header">
-                <h2>Quick Audit Insights</h2>
-            </div>
-            <div id="audit-stats-list" class="audit-grid">
-                <!-- Stats injected here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Tax Certificate Period Selector Modal -->
-    <div id="tax-period-modal" class="modal-overlay hidden">
-        <div class="modal-content" style="max-width: 450px;">
-            <div class="modal-header">
-                <h2>Select Certificate Period</h2>
-                <button class="close-modal" id="close-tax-period-modal">&times;</button>
-            </div>
-            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
-                <p style="color: var(--text-secondary); font-size: 0.9rem;">Choose the accounting period for your Tax Deduction Certificate.</p>
-                
+            <form id="budget-form">
                 <div class="form-group">
-                    <label>Base Year</label>
-                    <select id="tax-base-year" class="form-control"></select>
+                    <label for="budget-amount">Budget Goal (PKR)</label>
+                    <input type="number" id="budget-amount" placeholder="e.g. 50000" required>
                 </div>
-
-                <div style="display: grid; grid-template-columns: 1fr; gap: 0.8rem; margin-top: 1rem;">
-                    <button class="btn btn-primary" id="btn-tax-linear">📅 Linear Year (Jan - Dec)</button>
-                    <button class="btn btn-accent" id="btn-tax-fiscal">🏛️ Fiscal Year (Jul - Jun)</button>
-                    <button class="btn btn-outline" id="btn-tax-alltime">🌌 All-Time Summary</button>
-                </div>
-            </div>
+                <button type="submit" class="btn-submit">Save Budget</button>
+            </form>
         </div>
     </div>
 
-    </div>
-
-    <!-- Professional Audit Report Template -->
-    <div id="audit-report-template" style="display: none; padding: 40px; font-family: 'Inter', sans-serif; color: #1a1a1a; background: #fff; width: 800px;">
-        <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #3b82f6; padding-bottom: 20px; margin-bottom: 30px;">
-            <div>
-                <h1 style="margin: 0; color: #3b82f6; font-size: 24px;">FINANCIAL PERFORMANCE AUDIT</h1>
-                <p id="audit-report-subtitle" style="margin: 5px 0 0; color: #64748b; font-size: 14px;">Summary Report</p>
-            </div>
-            <div style="text-align: right;">
-                <h2 style="margin: 0; font-size: 18px;">MR HASSAN</h2>
-                <p style="margin: 5px 0 0; color: #64748b; font-size: 12px;" id="audit-gen-date"></p>
-            </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 40px;">
-            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                <span style="font-size: 10px; text-transform: uppercase; color: #64748b;">Total Gross</span>
-                <strong id="audit-total-gross" style="display: block; font-size: 16px; margin-top: 5px;"></strong>
-            </div>
-            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                <span style="font-size: 10px; text-transform: uppercase; color: #64748b;">Total Deduct</span>
-                <strong id="audit-total-deduct" style="display: block; font-size: 16px; margin-top: 5px; color: #ef4444;"></strong>
-            </div>
-            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                <span style="font-size: 10px; text-transform: uppercase; color: #64748b;">Total Net</span>
-                <strong id="audit-total-net" style="display: block; font-size: 16px; margin-top: 5px; color: #3b82f6;"></strong>
-            </div>
-            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                <span style="font-size: 10px; text-transform: uppercase; color: #64748b;">Managed Funds (Net)</span>
-                <strong id="audit-total-funds" style="display: block; font-size: 16px; margin-top: 5px; color: #10b981;"></strong>
-            </div>
-        </div>
-
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-            <thead style="background: #f1f5f9;">
-                <tr>
-                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0;">Period</th>
-                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0;">Gross Salary</th>
-                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0;">Tax Deduct</th>
-                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0;">Net Payable</th>
-                    <th style="padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0;">Extra Funds</th>
-                </tr>
-            </thead>
-            <tbody id="audit-table-body">
-                <!-- Rows injected here -->
-            </tbody>
-        </table>
-
-        <div style="margin-top: 50px; border-top: 1px solid #e2e8f0; padding-top: 20px; font-size: 10px; color: #64748b; text-align: center;">
-            This is an automated financial report generated by Salary Hub Enterprise. Verified securely via vault protocols.
-        </div>
-    </div>
-
-    <!-- Firebase SDKs -->
-    <!-- Official Income Tax Certificate Template -->
-    <!-- Attendance Summary Template -->
-    <div id="attendance-summary-template" style="display: none; padding: 25px; font-family: 'Arial', sans-serif; color: #1a1a1a; background: #fff; width: 800px; border: 1px solid #e2e8f0; box-sizing: border-box;">
-        <div style="text-align: center; margin-bottom: 20px;">
-            <h2 id="att-summary-title" style="margin: 0; background: #dcfce7; padding: 10px; border: 1px solid #16a34a; font-size: 18px;">Working Days of 2025</h2>
-        </div>
-        <table style="width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed;">
-            <thead>
-                <tr style="background: #f0fdf4; border: 1px solid #16a34a;">
-                    <th style="padding: 6px; border: 1px solid #16a34a; width: 12%;">Month</th>
-                    <th style="padding: 6px; border: 1px solid #16a34a; width: 12%;">Total Month Days</th>
-                    <th style="padding: 6px; border: 1px solid #16a34a; width: 12%;">Worked Days</th>
-                    <th style="padding: 6px; border: 1px solid #16a34a; width: 12%;">Weekly off Days</th>
-                    <th style="padding: 6px; border: 1px solid #16a34a; width: 10%;">GH Days</th>
-                    <th style="padding: 6px; border: 1px solid #16a34a; width: 10%;">Absent Days</th>
-                    <th style="padding: 6px; border: 1px solid #16a34a; width: 10%;">Leave Days</th>
-                    <th style="padding: 6px; border: 1px solid #16a34a; width: 8%;">CPL</th>
-                    <th style="padding: 6px; border: 1px solid #16a34a; width: 8%;">With Pay</th>
-                    <th style="padding: 6px; border: 1px solid #16a34a; width: 12%;">Total Days</th>
-                </tr>
-            </thead>
-            <tbody id="att-summary-body">
-                <!-- Data injected here -->
-            </tbody>
-            <tfoot>
-                <tr style="background: #f0fdf4; font-weight: bold; border: 1px solid #16a34a;">
-                    <td style="padding: 6px; border: 1px solid #16a34a;">Total</td>
-                    <td id="sum-att-total-month" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="sum-att-total-worked" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="sum-att-total-offs" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="sum-att-total-gh" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="sum-att-total-absent" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="sum-att-total-leave" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="sum-att-total-cpl" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="sum-att-total-pay" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                    <td id="sum-att-total-days" style="padding: 6px; border: 1px solid #16a34a; text-align: center;">0</td>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
-
-    <div id="tax-cert-template" style="display: none; padding: 25px; font-family: 'Times New Roman', serif; color: #1a1a1a; background: #fff; width: 700px; border: 3px double #1a1a1a; box-sizing: border-box;">
-        <div style="text-align: center; border-bottom: 1px solid #1a1a1a; padding-bottom: 10px; margin-bottom: 20px;">
-            <h1 style="margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 1px;">Certificate of Income Tax Deduction</h1>
-            <p style="margin: 3px 0; font-size: 12px; font-style: italic;">Issued under the Income Tax Ordinance</p>
-        </div>
-
-        <div style="margin-bottom: 20px; line-height: 1.4; font-size: 14px;">
-            <p>Certified that the sum of <strong>PKR <span id="cert-tax-total-val"></span></strong> has been deducted from the income of:</p>
-            <div style="margin: 10px 0; padding: 10px; border: 1px solid #e2e8f0; background: #f8fafc;">
-                <p style="margin: 0;"><strong>Name:</strong> MR HASSAN</p>
-                <p style="margin: 3px 0 0;"><strong>Period:</strong> <span id="cert-tax-period"></span></p>
-            </div>
-            <p id="cert-tax-summary-line" style="margin-top: 15px; font-size: 13px; line-height: 1.5; color: #334155; font-style: italic;"></p>
-        </div>
-
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; table-layout: fixed;">
-            <thead>
-                <tr style="background: #f1f5f9; border: 1px solid #1a1a1a;">
-                    <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: left; width: 34%;">Month/Year</th>
-                    <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: right; width: 22%;">Salary Tax</th>
-                    <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: right; width: 22%;">Funds Tax</th>
-                    <th style="padding: 6px; border: 1px solid #1a1a1a; text-align: right; width: 22%; font-size: 10px;">Total Deduction</th>
-                </tr>
-            </thead>
-            <tbody id="cert-tax-table-body">
-                <!-- Data rows here -->
-            </tbody>
-            <tfoot>
-                <tr style="background: #f1f5f9; font-weight: bold;">
-                    <td style="padding: 6px; border: 1px solid #1a1a1a;">TOTAL</td>
-                    <td id="cert-sum-salary-tax" style="padding: 6px; border: 1px solid #1a1a1a; text-align: right;"></td>
-                    <td id="cert-sum-funds-tax" style="padding: 6px; border: 1px solid #1a1a1a; text-align: right;"></td>
-                    <td id="cert-sum-total-tax" style="padding: 6px; border: 1px solid #1a1a1a; text-align: right;"></td>
-                </tr>
-            </tfoot>
-        </table>
-
-        <div style="display: flex; justify-content: space-between; margin-top: 40px; font-size: 13px;">
-            <div style="text-align: center; width: 200px;">
-                <div style="border-top: 1px solid #1a1a1a; padding-top: 5px;">Authorized Signature</div>
-            </div>
-            <div style="text-align: center; width: 200px;">
-                <div style="border-top: 1px solid #1a1a1a; padding-top: 5px;">Date of Issue</div>
-                <p id="cert-issue-date" style="margin-top: 3px;"></p>
-            </div>
-        </div>
-
-        <div style="margin-top: 40px; font-size: 9px; color: #64748b; text-align: center;">
-            This is a computer generated certificate. Verified securely via Salary Hub Enterprise Protocol.
-        </div>
-    </div>
-
-    <!-- Dedicated Attendance Entry Modal -->
-    <div id="attendance-modal" class="modal-overlay hidden">
-        <div class="modal-content" style="max-width: 500px; border-top: 5px solid #10b981;">
+    <!-- Modal for Adding/Editing Category -->
+    <div id="category-modal" class="modal">
+        <div class="modal-content glass">
             <div class="modal-header">
-                <h2 style="color: #065f46;">📅 Log Monthly Days</h2>
-                <button class="close-modal">✕</button>
+                <h2 id="category-modal-title">Add New Category</h2>
+                <button class="close-modal" id="close-category-modal">&times;</button>
             </div>
-            <form id="attendance-form">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-                    <div class="form-group" style="grid-column: span 2;">
-                        <label>Select Month</label>
-                        <input type="month" id="att-month" required>
-                    </div>
+            <form id="category-form">
+                <div class="form-group">
+                    <label for="cat-name">Category Name</label>
+                    <input type="text" id="cat-name" placeholder="e.g. Shopping" required>
+                </div>
+                <div class="form-row">
                     <div class="form-group">
-                        <label>Total Month Days</label>
-                        <input type="number" id="att-total-days" value="31" required oninput="triggerAttendanceCalculation()">
-                    </div>
-                    <div class="form-group">
-                        <label>Weekly Offs</label>
-                        <input type="number" id="att-weekly-offs" value="4" oninput="triggerAttendanceCalculation()">
-                    </div>
-                    <div class="form-group">
-                        <label>GH Days</label>
-                        <input type="number" id="att-gh-days" value="0" oninput="triggerAttendanceCalculation()">
-                    </div>
-                    <div class="form-group">
-                        <label>Absent Days</label>
-                        <input type="number" id="att-absent-days" value="0" step="0.5" oninput="triggerAttendanceCalculation()">
-                    </div>
-                    <div class="form-group">
-                        <label>Casual Leaves</label>
-                        <input type="number" id="att-casual-leaves" value="0" step="0.5" oninput="triggerAttendanceCalculation()">
-                    </div>
-                    <div class="form-group">
-                        <label>Sick Leaves</label>
-                        <input type="number" id="att-sick-leaves" value="0" step="0.5" oninput="triggerAttendanceCalculation()">
-                    </div>
-                    <div class="form-group">
-                        <label>Annual Leaves</label>
-                        <input type="number" id="att-annual-leaves" value="0" step="0.5" oninput="triggerAttendanceCalculation()">
-                    </div>
-                    <div class="form-group">
-                        <label>CPL Days (Used)</label>
-                        <input type="number" id="att-cpl-days" value="0" step="0.5" oninput="triggerAttendanceCalculation()">
-                    </div>
-                    <div class="form-group" style="grid-column: span 2;">
-                        <label>Unpaid / Other Leaves</label>
-                        <input type="number" id="att-leave-days" value="0" step="0.5" oninput="triggerAttendanceCalculation()">
-                    </div>
-                    <div class="form-group" style="grid-column: span 2; background: #f0fdf4; padding: 1rem; border-radius: 8px; border: 1px solid #10b981;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <label style="margin: 0; color: #065f46; font-weight: bold;">Calculated Worked Days:</label>
-                            <span id="att-calc-worked" style="font-size: 1.5rem; font-weight: 800; color: #16a34a;">0.00</span>
+                        <label for="cat-icon">Icon Name</label>
+                        <div class="icon-input-group">
+                            <input type="text" id="cat-icon" placeholder="e.g. heart" required>
+                            <button type="button" class="icon-btn-small" id="open-icon-picker" title="Browse Icons">
+                                <i data-lucide="search"></i>
+                            </button>
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label for="cat-color">Color</label>
+                        <input type="color" id="cat-color" value="#00e5ff">
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline close-modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="background: #10b981;">Save Attendance</button>
-                </div>
+                <p class="form-hint">Tip: Use icon names from <a href="https://lucide.dev/icons" target="_blank">lucide.dev</a></p>
+                <button type="submit" class="btn-submit" id="category-submit-btn">Add Category</button>
             </form>
         </div>
     </div>
 
-    <script>
-        function triggerAttendanceCalculation() {
-            try {
-                const getVal = (id) => parseFloat(document.getElementById(id)?.value) || 0;
-                
-                const total = getVal('att-total-days');
-                const offs = getVal('att-weekly-offs');
-                const gh = getVal('att-gh-days');
-                const abs = getVal('att-absent-days');
-                const cas = getVal('att-casual-leaves');
-                const sik = getVal('att-sick-leaves');
-                const ann = getVal('att-annual-leaves');
-                const cpl = getVal('att-cpl-days');
-                const unp = getVal('att-leave-days');
-                
-                const worked = total - (offs + gh + abs + cas + sik + ann + cpl + unp);
-                const display = document.getElementById('att-calc-worked');
-                if (display) {
-                    display.textContent = Math.max(0, worked).toFixed(2);
-                }
-            } catch (e) { console.error("Calc Error:", e); }
-        }
-    </script>
-    <!-- Logout Confirmation Modal -->
-    <div id="logout-confirm-modal" class="modal-overlay hidden">
-        <div class="modal-content" style="max-width: 400px; text-align: center;">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">🚪</div>
-            <h2>Confirm Logout</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Are you sure you want to lock the dashboard? You will need your PIN to re-access your data.</p>
-            <div style="display: flex; gap: 1rem; justify-content: center;">
-                <button id="cancel-logout-btn" class="btn btn-outline" style="flex: 1;">Cancel</button>
-                <button id="confirm-logout-btn" class="btn btn-primary" style="flex: 1; background: #ef4444;">Logout</button>
+    <!-- Modal for Icon Picker -->
+    <div id="icon-picker-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2>Choose Icon</h2>
+                <button class="close-modal" id="close-icon-picker">&times;</button>
+            </div>
+            <div class="search-input" style="width: 100%; margin-bottom: 1.5rem;">
+                <i data-lucide="search"></i>
+                <input type="text" id="icon-search" placeholder="Search icons...">
+            </div>
+            <div id="icon-grid" class="icon-grid-container">
+                <!-- Icons loaded here -->
             </div>
         </div>
     </div>
 
+    <!-- Modal for Confirmation -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content glass confirm-content">
+            <div class="confirm-icon">
+                <i data-lucide="alert-triangle"></i>
+            </div>
+            <h2 id="confirm-message">Are you sure?</h2>
+            <p>This action cannot be undone.</p>
+            <div class="confirm-actions">
+                <button class="btn-secondary" id="confirm-cancel">Cancel</button>
+                <button class="btn-danger" id="confirm-ok">Delete</button>
+            </div>
+        </div>
+    </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="script.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
-
 </html>

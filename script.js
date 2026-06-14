@@ -187,6 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let deleteTarget = null;
     let salaryTrendChart = null;
     let deductionPieChart = null;
+    let employerIncomeChart = null;
+    let industryIncomeChart = null;
     let searchQuery = '';
 
     // --- Elements ---
@@ -279,7 +281,9 @@ document.addEventListener('DOMContentLoaded', () => {
         overallDeduction: document.getElementById('overall-deduction'),
         grossSalary: document.getElementById('gross-salary'),
         netPayable: document.getElementById('net-payable'),
-        remarks: document.getElementById('remarks')
+        remarks: document.getElementById('remarks'),
+        source: document.getElementById('source'),
+        industry: document.getElementById('industry')
     };
 
     const lockedState = { 'pf-deduction': true, 'eobi-deduction': true, 'income-tax': true };
@@ -1024,6 +1028,57 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // Income by Employer & Industry
+        const employerData = {};
+        const industryData = {};
+        filtered.forEach(r => {
+            const emp = r.source || 'Unknown';
+            const ind = r.industry || 'Unknown';
+            const net = parseNumber(r.netPayable);
+            employerData[emp] = (employerData[emp] || 0) + net;
+            industryData[ind] = (industryData[ind] || 0) + net;
+        });
+
+        const chartColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#ef4444', '#06b6d4', '#f97316', '#64748b'];
+
+        const ctx3 = document.getElementById('employerIncomeChart').getContext('2d');
+        if (employerIncomeChart) employerIncomeChart.destroy();
+        employerIncomeChart = new Chart(ctx3, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(employerData),
+                datasets: [{
+                    data: Object.values(employerData),
+                    backgroundColor: chartColors.slice(0, Object.keys(employerData).length || 1),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: textColor } } }
+            }
+        });
+
+        const ctx4 = document.getElementById('industryIncomeChart').getContext('2d');
+        if (industryIncomeChart) industryIncomeChart.destroy();
+        industryIncomeChart = new Chart(ctx4, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(industryData),
+                datasets: [{
+                    data: Object.values(industryData),
+                    backgroundColor: chartColors.slice(0, Object.keys(industryData).length || 1),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: textColor } } }
+            }
+        });
+
         renderHeatmap();
     };
 
@@ -1125,7 +1180,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (searchQuery) {
             filtered = filtered.filter(r => 
                 r.month.toLowerCase().includes(searchQuery) || 
-                r.remarks?.toLowerCase().includes(searchQuery)
+                r.remarks?.toLowerCase().includes(searchQuery) ||
+                r.source?.toLowerCase().includes(searchQuery) ||
+                r.industry?.toLowerCase().includes(searchQuery)
             );
         }
 
@@ -1134,6 +1191,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${formatShortMonth(r.month)}</strong></td>
+                <td><span class="badge" style="background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-primary); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">${r.source || '-'}</span></td>
+                <td><span style="font-size: 0.8rem; color: var(--text-secondary);">${r.industry || '-'}</span></td>
                 <td>${formatNumber(r.salary)}</td>
                 <td>${formatNumber(r.pfDeduction)}</td>
                 <td>${formatNumber(r.eobiDeduction)}</td>
@@ -1607,10 +1666,24 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('No salary records found!', 'error');
             return;
         }
-        let csv = 'Month,Base Salary,PF,EOBI,Tax,WP,Deduct,OT Pay,Gross Salary,Net Pay,Remarks\n';
+        let csv = 'Month,Employer/Source,Industry,Base Salary,PF,EOBI,Tax,WP,Deduct,OT Pay,Gross Salary,Net Pay,Remarks\n';
         records.forEach(r => {
             const ot = parseNumber(r.otAmount) || (parseNumber(r.grossSalary) - parseNumber(r.salary));
-            const row = [r.month, parseNumber(r.salary), parseNumber(r.pfDeduction), parseNumber(r.eobiDeduction), parseNumber(r.incomeTax), parseNumber(r.withoutPay), parseNumber(r.overallDeduction), ot, parseNumber(r.grossSalary), parseNumber(r.netPayable), `"${(r.remarks || '').replace(/"/g, '""')}"`];
+            const row = [
+                r.month,
+                `"${(r.source || '').replace(/"/g, '""')}"`,
+                `"${(r.industry || '').replace(/"/g, '""')}"`,
+                parseNumber(r.salary),
+                parseNumber(r.pfDeduction),
+                parseNumber(r.eobiDeduction),
+                parseNumber(r.incomeTax),
+                parseNumber(r.withoutPay),
+                parseNumber(r.overallDeduction),
+                ot,
+                parseNumber(r.grossSalary),
+                parseNumber(r.netPayable),
+                `"${(r.remarks || '').replace(/"/g, '""')}"`
+            ];
             csv += row.join(',') + '\n';
         });
         downloadCSV(csv, `Salary_History_${new Date().getFullYear()}.csv`);
